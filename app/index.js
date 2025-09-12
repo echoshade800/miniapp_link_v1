@@ -35,7 +35,7 @@ export default function HomeScreen() {
       >
         {/* Bamboo Balance - Top Right */}
         <View style={styles.bambooContainer}>
-          <Text style={styles.bambooIcon}>🎋</Text>
+          <Text style={styles.bambooIcon}>🎍</Text>
           <Text style={styles.bambooText}>{bambooBalance}</Text>
         </View>
 
