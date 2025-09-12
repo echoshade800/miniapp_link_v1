@@ -93,7 +93,7 @@ export default function Shop() {
         </View>
         
         <View style={styles.priceRow}>
-          <MaterialIcons name="eco" size={16} color="#4CAF50" />
+          <Text style={styles.priceIcon}>🎋</Text>
           <Text style={styles.priceText}>{tool.price}</Text>
         </View>
       </View>
@@ -128,7 +128,7 @@ export default function Shop() {
         <Text style={styles.title}>Shop</Text>
         
         <View style={styles.bambooContainer}>
-          <MaterialIcons name="eco" size={20} color="#4CAF50" />
+          <Text style={styles.bambooIcon}>🎋</Text>
           <Text style={styles.bambooText}>{bambooBalance}</Text>
         </View>
       </View>
@@ -199,6 +199,9 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     color: '#333',
   },
+  bambooIcon: {
+    fontSize: 20,
+  },
   description: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -268,6 +271,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4CAF50',
     marginLeft: 4,
+  },
+  priceIcon: {
+    fontSize: 16,
   },
   buyButton: {
     backgroundColor: '#4CAF50',

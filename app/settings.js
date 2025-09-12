@@ -230,7 +230,7 @@ export default function Settings() {
               </View>
               
               <View style={styles.statRow}>
-                <MaterialIcons name="eco" size={24} color="#4CAF50" />
+                <Text style={styles.bambooIcon}>🎋</Text>
                 <View style={styles.statInfo}>
                   <Text style={styles.statLabel}>Bamboo Balance</Text>
                   <Text style={styles.statValue}>{bambooBalance}</Text>
@@ -510,5 +510,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginTop: 4,
+  },
+  bambooIcon: {
+    fontSize: 24,
   },
 });
