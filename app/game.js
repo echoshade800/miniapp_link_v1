@@ -600,6 +600,10 @@ export default function Game() {
       }
     });
     setSelectedTiles([]);
+    
+    // Show invalid path tooltip
+    Alert.alert('Invalid Connection', 'Path cannot have more than 2 turns');
+    
     playSound('fail');
     vibrate();
     
