@@ -852,7 +852,7 @@ export default function Game() {
               </View>
             )}
             <View style={styles.progressIcon}>
-              <Text style={styles.bambooIcon}>🎋</Text>
+              <Text style={styles.bambooIcon}>🎍</Text>
             </View>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: '60%' }]} />
