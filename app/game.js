@@ -1167,7 +1167,6 @@ export default function Game() {
       </TouchableOpacity>
     );
   };
-          
 
   const renderModal = () => {
     if (!showModal) return null;
@@ -1582,9 +1581,9 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   bombTargetTile: {
-    backgroundColor: '#FFCDD2',
-    borderColor: '#F44336',
-    shadowColor: '#F44336',
+    backgroundColor: '#FFAB91',
+    borderColor: '#FF5722',
+    shadowColor: '#FF5722',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 8,
