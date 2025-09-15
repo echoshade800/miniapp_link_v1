@@ -1,17 +1,14 @@
 {
-  "name": "LinkerMiniApp",
+  "name": "bolt-expo-starter",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "EXPO_NO_TELEMETRY=1 expo start",
     "build:web": "expo export --platform web",
-    "build:ios": "npx react-native bundle --platform ios --dev false --entry-file index.tsx --bundle-output ios/rnbundle/main.jsbundle --assets-dest ios",
-    "lint": "expo lint",
-    "deploy:ios": "sh deploy_ios.sh"
+    "lint": "expo lint"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.888.0",
     "@expo/vector-icons": "^15.0.2",
     "@lucide/lab": "^0.1.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -32,9 +29,9 @@
     "expo-system-ui": "~6.0.7",
     "expo-web-browser": "~15.0.7",
     "lucide-react-native": "^0.475.0",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-native": "0.73.6",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.4",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-reanimated": "^4.1.0",
     "react-native-safe-area-context": "~5.6.0",
@@ -48,8 +45,6 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@react-native-community/cli": "^13.6.9",
-    "@react-native/metro-config": "^0.73.7",
     "@types/react": "~19.1.10",
     "typescript": "~5.9.2"
   }
