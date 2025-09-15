@@ -641,8 +641,39 @@ export default function Game() {
   };
 
   const isDeadlocked = (currentBoard) => {
-    // TODO: Implement actual deadlock detection
-    return false;
+    // 收集所有非空瓦片的位置和类型
+    const tiles = [];
+    for (let row = 0; row < currentBoard.length; row++) {
+      for (let col = 0; col < currentBoard[0].length; col++) {
+        if (currentBoard[row][col]) {
+          tiles.push({
+            row,
+            col,
+            type: currentBoard[row][col]
+          });
+        }
+      }
+    }
+    
+    // 检查是否存在任何可连接的瓦片对
+    for (let i = 0; i < tiles.length; i++) {
+      for (let j = i + 1; j < tiles.length; j++) {
+        const tile1 = tiles[i];
+        const tile2 = tiles[j];
+        
+        // 只检查相同类型的瓦片
+        if (tile1.type === tile2.type) {
+          // 使用现有的路径识别算法检查是否可连接
+          const pathResult = findPath(tile1, tile2);
+          if (pathResult.isValid) {
+            return false; // 找到可连接的瓦片对，不是死局
+          }
+        }
+      }
+    }
+    
+    // 没有找到任何可连接的瓦片对，是死局
+    return tiles.length > 0; // 只有还有瓦片但无法连接才是死局
   };
 
   const handleLevelComplete = () => {
