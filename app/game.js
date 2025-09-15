@@ -39,6 +39,7 @@ export default function Game() {
   const [showModal, setShowModal] = useState(null); // 'pause', 'complete', 'failed', 'deadlock', 'gravity-tip'
   const [bambooAnimations, setBambooAnimations] = useState([]);
   const [hasShownGravityTip, setHasShownGravityTip] = useState(false);
+  const [hintedTiles, setHintedTiles] = useState([]); // 存储被提示高亮的瓦片位置
 
   // 使用store中的状态，不使用本地状态
   const timeRemaining = gameState.timeRemaining;
@@ -698,19 +699,122 @@ export default function Game() {
     setShowModal('failed');
   };
 
+  // 寻找第一对可连接的瓦片
+  const findConnectablePair = (currentBoard) => {
+    // 收集所有非空瓦片
+    const tiles = [];
+    for (let row = 0; row < currentBoard.length; row++) {
+      for (let col = 0; col < currentBoard[0].length; col++) {
+        if (currentBoard[row][col]) {
+          tiles.push({
+            row,
+            col,
+            type: currentBoard[row][col]
+          });
+        }
+      }
+    }
+    
+    // 检查所有瓦片对
+    for (let i = 0; i < tiles.length; i++) {
+      for (let j = i + 1; j < tiles.length; j++) {
+        const tile1 = tiles[i];
+        const tile2 = tiles[j];
+        
+        // 只检查相同类型的瓦片
+        if (tile1.type === tile2.type) {
+          const pathResult = findPath(tile1, tile2);
+          if (pathResult.isValid) {
+            return { tile1, tile2, pathResult };
+          }
+        }
+      }
+    }
+    
+    return null; // 没有找到可连接的瓦片对
+  };
+
   const handleUseTool = (toolType) => {
     const success = useTool(toolType);
     if (!success) return;
 
     switch (toolType) {
       case 'hint':
-        // TODO: Highlight a valid pair
-        Alert.alert('Hint Used', 'A valid pair has been highlighted!');
+        // 寻找可连接的瓦片对并高亮显示
+        const connectablePair = findConnectablePair(board);
+        if (connectablePair) {
+          const { tile1, tile2 } = connectablePair;
+          setHintedTiles([
+            { row: tile1.row, col: tile1.col },
+            { row: tile2.row, col: tile2.col }
+          ]);
+          
+          // 3秒后清除高亮
+          setTimeout(() => {
+            setHintedTiles([]);
+          }, 3000);
+          
+          Alert.alert('Hint Used', 'A connectable pair has been highlighted!');
+        } else {
+          Alert.alert('No Hint Available', 'No connectable pairs found!');
+        }
         break;
+        
       case 'bomb':
-        // TODO: Remove a random valid pair
-        Alert.alert('Bomb Used', 'A pair has been removed!');
+        // 寻找可连接的瓦片对并自动消除
+        const bombPair = findConnectablePair(board);
+        if (bombPair) {
+          const { tile1, tile2, pathResult } = bombPair;
+          
+          // 自动消除这对瓦片
+          let newBoard = board.map(row => [...row]);
+          newBoard[tile1.row][tile1.col] = '';
+          newBoard[tile2.row][tile2.col] = '';
+          
+          // 应用重力效果
+          const currentLayout = GameUtils.getLevelLayout(currentLevel);
+          newBoard = applyGravityEffect(newBoard, currentLayout);
+          
+          // 更新棋盘
+          useGameStore.setState({
+            gameState: {
+              ...gameState,
+              board: newBoard
+            }
+          });
+          
+          // 计算并添加竹子奖励
+          const earnedBamboo = pathResult.turns + 1;
+          const animationPositions = calculateBambooStartPositions(pathResult.path, earnedBamboo, tile1, tile2);
+          const endX = 60;
+          const endY = 120;
+          
+          const animationId = Date.now();
+          setBambooAnimations(prev => [...prev, {
+            id: animationId,
+            bambooCount: earnedBamboo,
+            startPositions: animationPositions,
+            endPosition: { x: endX, y: endY },
+          }]);
+          
+          setCurrentLevelBamboo(prev => prev + earnedBamboo);
+          
+          playSound('success');
+          vibrate();
+          
+          Alert.alert('Bomb Used', `A pair has been removed! +${earnedBamboo} bamboo`);
+          
+          // 检查关卡是否完成
+          if (isLevelComplete(newBoard)) {
+            handleLevelComplete();
+          } else if (isDeadlocked(newBoard)) {
+            setShowModal('deadlock');
+          }
+        } else {
+          Alert.alert('Bomb Failed', 'No connectable pairs found to remove!');
+        }
         break;
+        
       case 'shuffle':
         // 重新洗牌剩余瓦片
         const remainingTiles = [];
@@ -778,6 +882,7 @@ export default function Game() {
 
   const renderTile = (tile, row, col) => {
     const isSelected = selectedTiles.some(t => t.row === row && t.col === col);
+    const isHinted = hintedTiles.some(t => t.row === row && t.col === col);
     const isEmpty = !tile;
     
     if (isEmpty) {
@@ -787,7 +892,11 @@ export default function Game() {
     return (
       <TouchableOpacity
         key={`${row}-${col}`}
-        style={[styles.tile, isSelected && styles.selectedTile]}
+        style={[
+          styles.tile, 
+          isSelected && styles.selectedTile,
+          isHinted && styles.hintedTile
+        ]}
         onPress={() => handleTilePress(row, col)}
       >
         <Text style={styles.tileEmoji}>{tile}</Text>
@@ -1164,6 +1273,15 @@ const styles = StyleSheet.create({
   selectedTile: {
     backgroundColor: '#81C784',
     borderColor: '#4CAF50',
+  },
+  hintedTile: {
+    backgroundColor: '#FFE082',
+    borderColor: '#FFC107',
+    shadowColor: '#FFC107',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 8,
   },
   emptyTile: {
     width: 32,
