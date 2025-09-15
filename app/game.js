@@ -958,22 +958,6 @@ export default function Game() {
             targetPositions: sparkTargetPositions
           }]);
           
-          // 计算并添加竹子奖励
-          const earnedBamboo = pathResult.turns + 1;
-          const animationPositions = calculateBambooStartPositions(pathResult.path, earnedBamboo, tile1, tile2);
-          const endX = 60;
-          const endY = 120;
-          
-          const animationId = Date.now();
-          setBambooAnimations(prev => [...prev, {
-            id: animationId,
-            bambooCount: earnedBamboo,
-            startPositions: animationPositions,
-            endPosition: { x: endX, y: endY },
-          }]);
-          
-          setCurrentLevelBamboo(prev => prev + earnedBamboo);
-          
           playSound('success');
           vibrate();
           
