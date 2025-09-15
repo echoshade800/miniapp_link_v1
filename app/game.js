@@ -967,7 +967,6 @@ export default function Game() {
         if (bombPair) {
           const { tile1, tile2 } = bombPair;
           
-          
           // 设置炸弹目标瓦片（用于高亮显示）
           setBombTargetTiles([
             { row: tile1.row, col: tile1.col },
@@ -1000,7 +999,7 @@ export default function Game() {
             ],
             onComplete: () => {
               // 火花命中后执行瓦片消除
-             executeBombDestruction(bombTargets);
+              executeBombDestruction(tile1, tile2);
             }
           }]);
           
@@ -1055,15 +1054,14 @@ export default function Game() {
     }
   };
 
-  // 执行炸弹摧毁效果（延迟执行，支持多目标）
-  const executeBombDestruction = (targets) => {
+  // 执行炸弹摧毁效果（延迟执行）
+  const executeBombDestruction = (tile1, tile2) => {
     // 短暂停留让用户看清目标
     setTimeout(() => {
-      // 消除所有目标瓦片
+      // 消除目标瓦片
       let newBoard = board.map(row => [...row]);
-      targets.forEach(target => {
-        newBoard[target.row][target.col] = '';
-      });
+      newBoard[tile1.row][tile1.col] = '';
+      newBoard[tile2.row][tile2.col] = '';
       
       // 清除炸弹目标高亮
       setBombTargetTiles([]);
