@@ -21,6 +21,7 @@ import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import useGameStore, { GameUtils, GAME_CONSTANTS } from '../store/gameStore';
 import BambooAnimation from '../components/BambooAnimation';
+import SparkAnimation from '../components/SparkAnimation';
 
 export default function Game() {
   const { 
@@ -38,6 +39,7 @@ export default function Game() {
   const [isPaused, setIsPaused] = useState(false);
   const [showModal, setShowModal] = useState(null); // 'pause', 'complete', 'failed', 'deadlock', 'gravity-tip'
   const [bambooAnimations, setBambooAnimations] = useState([]);
+  const [sparkAnimations, setSparkAnimations] = useState([]);
   const [hasShownGravityTip, setHasShownGravityTip] = useState(false);
   const [hintedTiles, setHintedTiles] = useState([]); // 存储被提示高亮的瓦片位置
 
@@ -787,6 +789,7 @@ export default function Game() {
     setCurrentLevelBamboo(0);
     setHintedTiles([]);
     setBambooAnimations([]);
+    setSparkAnimations([]);
     setHasShownGravityTip(false);
     
     // 重新开始当前关卡
