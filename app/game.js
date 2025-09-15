@@ -906,10 +906,8 @@ export default function Game() {
           setTimeout(() => {
             setHintedTiles([]);
           }, 3000);
-          
-          Alert.alert('Hint Used', 'A connectable pair has been highlighted!');
         } else {
-          Alert.alert('No Hint Available', 'No connectable pairs found!');
+          // No connectable pairs found - could add visual feedback here if needed
         }
         break;
         
@@ -955,8 +953,6 @@ export default function Game() {
           playSound('success');
           vibrate();
           
-          Alert.alert('Bomb Used', `A pair has been removed! +${earnedBamboo} bamboo`);
-          
           // 检查关卡是否完成
           if (isLevelComplete(newBoard)) {
             handleLevelComplete();
@@ -964,7 +960,7 @@ export default function Game() {
             setShowModal('deadlock');
           }
         } else {
-          Alert.alert('Bomb Failed', 'No connectable pairs found to remove!');
+          // No connectable pairs found to remove - could add visual feedback here if needed
         }
         break;
         
@@ -1007,7 +1003,6 @@ export default function Game() {
             timeRemaining: timeRemaining + 3
           }
         });
-        Alert.alert('Shuffle Used', 'Tiles have been reshuffled! +3 seconds');
         break;
     }
   };
