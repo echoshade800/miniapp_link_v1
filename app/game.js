@@ -967,6 +967,7 @@ export default function Game() {
         if (bombPair) {
           const { tile1, tile2 } = bombPair;
           
+          
           // 设置炸弹目标瓦片（用于高亮显示）
           setBombTargetTiles([
             { row: tile1.row, col: tile1.col },
