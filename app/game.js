@@ -45,10 +45,19 @@ export default function Game() {
   const heartsRemaining = gameState.heartsRemaining;
   const board = gameState.board;
   
-  // 计算进度条相关数据
+  // 计算进度条相关数据 - 基于剩余瓦片数量
   const currentSize = GameUtils.getLevelSize(currentLevel);
   const totalPairs = currentSize / 2;
-  const eliminatedPairs = Math.floor(currentLevelBamboo / 1); // 假设每对至少1竹子，实际可能更多
+  
+  // 统计剩余瓦片数量
+  const remainingTiles = board.reduce((count, row) => {
+    return count + row.reduce((rowCount, tile) => {
+      return rowCount + (tile ? 1 : 0);
+    }, 0);
+  }, 0);
+  
+  const remainingPairs = remainingTiles / 2;
+  const eliminatedPairs = totalPairs - remainingPairs;
   const progressPercentage = totalPairs > 0 ? (eliminatedPairs / totalPairs) * 100 : 0;
   
   // 获取当前关卡的重力模式信息
