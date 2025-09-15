@@ -1033,6 +1033,10 @@ export default function Game() {
     setBambooAnimations(prev => prev.filter(anim => anim.id !== animationId));
   };
 
+  const handleSparkAnimationComplete = (animationId) => {
+    setSparkAnimations(prev => prev.filter(anim => anim.id !== animationId));
+  };
+
   const renderTile = (tile, row, col) => {
     const isSelected = selectedTiles.some(t => t.row === row && t.col === col);
     const isHinted = hintedTiles.some(t => t.row === row && t.col === col);
