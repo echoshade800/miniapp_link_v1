@@ -887,6 +887,46 @@ export default function Game() {
     return null; // 没有找到可连接的瓦片对
   };
 
+  // 计算炸弹移除瓦片数量
+  const getBombRemoveCount = (levelSize) => {
+    if (levelSize <= 20) return 2;
+    if (levelSize <= 40) return 4;
+    if (levelSize <= 60) return 6;
+    return 8;
+  };
+
+  // 随机选择要移除的瓦片
+  const selectRandomTilesToRemove = (board, count) => {
+    const tiles = [];
+    for (let row = 0; row < board.length; row++) {
+      for (let col = 0; col < board[0].length; col++) {
+        if (board[row][col]) {
+          tiles.push({ row, col, type: board[row][col] });
+        }
+      }
+    }
+    
+    // 洗牌并选择前count个
+    for (let i = tiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+    }
+    
+    return tiles.slice(0, Math.min(count, tiles.length));
+  };
+
+  // 获取瓦片在屏幕上的位置
+  const getTileScreenPosition = (row, col) => {
+    const tileSize = 34;
+    const boardOffsetX = 15;
+    const boardOffsetY = 200;
+    
+    return {
+      x: boardOffsetX + col * tileSize + tileSize / 2,
+      y: boardOffsetY + row * tileSize + tileSize / 2
+    };
+  };
+
   const handleUseTool = (toolType) => {
     const success = useTool(toolType);
     if (!success) return;
@@ -912,63 +952,62 @@ export default function Game() {
         break;
         
       case 'bomb':
-        // 寻找可连接的瓦片对并自动消除
-        const bombPair = findConnectablePair(board);
-        if (bombPair) {
-          const { tile1, tile2, pathResult } = bombPair;
+        // 计算要消除的瓦片数量
+        const currentSize = GameUtils.getLevelSize(currentLevel);
+        const removeCount = getBombRemoveCount(currentSize);
+        
+        // 随机选择要消除的瓦片
+        const tilesToRemove = selectRandomTilesToRemove(board, removeCount);
+        
+        if (tilesToRemove.length > 0) {
+          // 计算炸弹按钮位置（火花起始位置）
+          const bombButtonPosition = { x: 60, y: 600 }; // 大概的炸弹按钮位置
           
-          // 自动消除这对瓦片
-          let newBoard = board.map(row => [...row]);
-          newBoard[tile1.row][tile1.col] = '';
-          newBoard[tile2.row][tile2.col] = '';
+          // 计算目标瓦片的屏幕位置
+          const targetPositions = tilesToRemove.map(tile => 
+            getTileScreenPosition(tile.row, tile.col)
+          );
           
-          // 应用重力效果
-          const currentLayout = GameUtils.getLevelLayout(currentLevel);
-          newBoard = applyGravityEffect(newBoard, currentLayout);
-          
-          // 更新棋盘
-          useGameStore.setState({
-            gameState: {
-              ...gameState,
-              board: newBoard
-            }
-          });
-          
-          // 创建火花动画效果
-          const sparkAnimationId = Date.now() + 1000;
-          const tileSize = 34;
-          const boardOffsetX = 15;
-          const boardOffsetY = 200;
-          
-          const sparkStartX = boardOffsetX + (tile1.col + tile2.col) / 2 * tileSize + tileSize / 2;
-          const sparkStartY = boardOffsetY + (tile1.row + tile2.row) / 2 * tileSize + tileSize / 2;
-          
-          const sparkTargetPositions = [];
-          for (let i = 0; i < 5; i++) {
-            sparkTargetPositions.push({
-              x: sparkStartX + (Math.random() - 0.5) * 100,
-              y: sparkStartY + (Math.random() - 0.5) * 100
-            });
-          }
-          
+          // 创建火花动画
+          const animationId = Date.now();
           setSparkAnimations(prev => [...prev, {
-            id: sparkAnimationId,
-            sparkCount: 5,
-            startPosition: { x: sparkStartX, y: sparkStartY },
-            targetPositions: sparkTargetPositions
+            id: animationId,
+            sparkCount: tilesToRemove.length,
+            startPosition: bombButtonPosition,
+            targetPositions,
+            tilesToRemove,
+            onComplete: () => {
+              // 动画完成后移除瓦片
+              let newBoard = board.map(row => [...row]);
+              tilesToRemove.forEach(tile => {
+                newBoard[tile.row][tile.col] = '';
+              });
+              
+              // Apply gravity effect
+              const currentLayout = GameUtils.getLevelLayout(currentLevel);
+              newBoard = applyGravityEffect(newBoard, currentLayout);
+              
+              // 更新store中的棋盘
+              useGameStore.setState({
+                gameState: {
+                  ...gameState,
+                  board: newBoard
+                }
+              });
+              
+              // Check if level complete
+              if (isLevelComplete(newBoard)) {
+                handleLevelComplete();
+              } else if (isDeadlocked(newBoard)) {
+                setShowModal('deadlock');
+              }
+            }
           }]);
           
-          playSound('success');
+          playSound('bomb');
           vibrate();
-          
-          // 检查关卡是否完成
-          if (isLevelComplete(newBoard)) {
-            handleLevelComplete();
-          } else if (isDeadlocked(newBoard)) {
-            setShowModal('deadlock');
-          }
         } else {
-          // No connectable pairs found to remove - could add visual feedback here if needed
+          Alert.alert('Bomb Failed', 'No tiles to remove!');
         }
         break;
         
