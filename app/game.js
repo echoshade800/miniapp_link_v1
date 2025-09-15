@@ -1094,6 +1094,7 @@ export default function Game() {
             buttons: [
               { text: `Use Shuffle (${inventory.shuffle})`, onPress: () => { handleUseTool('shuffle'); setShowModal(null); }, style: 'primary', disabled: inventory.shuffle === 0 },
               { text: 'Restart', onPress: handleRestart, style: 'secondary' },
+              { text: 'Home', onPress: () => router.replace('/'), style: 'secondary' },
             ]
           };
         case 'gravity-tip':
