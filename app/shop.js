@@ -269,9 +269,6 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     marginLeft: 4,
   },
-  bambooIcon: {
-    fontSize: 16,
-  },
   buyButton: {
     backgroundColor: '#4CAF50',
     paddingHorizontal: 20,

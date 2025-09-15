@@ -497,9 +497,6 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 4,
   },
-  bambooIcon: {
-    fontSize: 24,
-  },
   versionSection: {
     alignItems: 'center',
     paddingVertical: 20,

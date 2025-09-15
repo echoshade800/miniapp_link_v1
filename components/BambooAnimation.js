@@ -86,7 +86,7 @@ const BambooAnimation = ({
 
         return (
           <Animated.View key={item.id} style={[styles.bambooItem, animatedStyle]}>
-            <Text style={styles.bambooEmoji}>🎍</Text>
+            <Text style={styles.bambooEmoji}>🎋</Text>
           </Animated.View>
         );
       })}
