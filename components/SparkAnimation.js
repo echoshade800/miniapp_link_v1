@@ -107,7 +107,7 @@ const SparkAnimation = ({
 
         return (
           <Animated.View key={spark.id} style={[styles.sparkItem, animatedStyle]}>
-            <Text style={styles.sparkEmoji}>✨</Text>
+            <Text style={styles.sparkEmoji}>💥</Text>
           </Animated.View>
         );
       })}
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sparkEmoji: {
-    fontSize: 20,
+    fontSize: 24,
   },
 });
 
