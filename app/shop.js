@@ -111,7 +111,7 @@ export default function Shop() {
           styles.buyButtonText,
           bambooBalance < tool.price && styles.buyButtonTextDisabled,
         ]}>
-          {purchasing === tool.id ? '购买中...' : '购买'}
+          {purchasing === tool.id ? 'Buying...' : 'Buy'}
         </Text>
       </TouchableOpacity>
     </View>
