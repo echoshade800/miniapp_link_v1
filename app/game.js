@@ -944,6 +944,51 @@ export default function Game() {
     return null; // 没有找到可连接的瓦片对
   };
 
+  // 计算瓦片在屏幕上的位置
+  const getTileScreenPosition = (row, col) => {
+    const tileSize = 34; // 瓦片大小包含间距
+    const boardOffsetX = 15; // 棋盘在屏幕中的X偏移
+    const boardOffsetY = 200; // 棋盘在屏幕中的Y偏移（大概位置）
+    
+    return {
+      x: boardOffsetX + col * tileSize + tileSize / 2,
+      y: boardOffsetY + row * tileSize + tileSize / 2
+    };
+  };
+
+  // 计算炸弹消除数量
+  const getBombRemoveCount = (levelSize) => {
+    if (levelSize === 20) return 2;      // 小关卡：2个瓦片
+    if (levelSize === 60) return 4;      // 中关卡：4个瓦片
+    if (levelSize === 80) return 6;      // 大关卡：6个瓦片
+    return 2; // 默认值
+  };
+
+  // 随机选择要消除的瓦片
+  const selectRandomTilesToRemove = (currentBoard, removeCount) => {
+    // 收集所有非空瓦片
+    const tiles = [];
+    for (let row = 0; row < currentBoard.length; row++) {
+      for (let col = 0; col < currentBoard[0].length; col++) {
+        if (currentBoard[row][col]) {
+          tiles.push({
+            row,
+            col,
+            type: currentBoard[row][col]
+          });
+        }
+      }
+    }
+    
+    // 洗牌并选择指定数量的瓦片
+    for (let i = tiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+    }
+    
+    return tiles.slice(0, Math.min(removeCount, tiles.length));
+  };
+
   const handleUseTool = (toolType) => {
     const success = useTool(toolType);
     if (!success) return;
@@ -969,56 +1014,42 @@ export default function Game() {
         break;
         
       case 'bomb':
-        // 根据关卡规模确定炸弹威力
+        // 计算要消除的瓦片数量
         const currentSize = GameUtils.getLevelSize(currentLevel);
-        const targetCount = getBombTargetCount(currentSize);
+        const removeCount = getBombRemoveCount(currentSize);
         
-        // 寻找安全的随机炸弹目标
-        const bombTargets = findSafeRandomBombTargets(board, targetCount);
-        if (bombTargets && bombTargets.length === targetCount) {
+        // 随机选择要消除的瓦片
+        const tilesToRemove = selectRandomTilesToRemove(board, removeCount);
+        
+        if (tilesToRemove.length > 0) {
+          // 计算炸弹按钮位置（火花起始位置）
+          const bombButtonPosition = { x: 60, y: 600 }; // 大概的炸弹按钮位置
           
-          // 设置炸弹目标瓦片（用于高亮显示）
-          setBombTargetTiles(bombTargets.map(target => ({
-            row: target.row,
-            col: target.col
-          })));
+          // 计算目标瓦片的屏幕位置
+          const targetPositions = tilesToRemove.map(tile => 
+            getTileScreenPosition(tile.row, tile.col)
+          );
           
-          // 计算炸弹按钮位置（大概位置）
-          const bombButtonX = 60; // 炸弹按钮的X位置
-          const bombButtonY = 600; // 炸弹按钮的Y位置
-          
-          // 计算所有目标瓦片位置
-          const tileSize = 34;
-          const boardOffsetX = 15;
-          const boardOffsetY = 200;
-          
-          const targetPositions = bombTargets.map(target => ({
-            x: boardOffsetX + target.col * tileSize + tileSize / 2,
-            y: boardOffsetY + target.row * tileSize + tileSize / 2
-          }));
-          
-          // 创建火花发射动画
-          const sparkAnimationId = Date.now();
+          // 创建火花动画
+          const animationId = Date.now();
           setSparkAnimations(prev => [...prev, {
-            id: sparkAnimationId,
-            sparkCount: targetCount, // 火花数量等于目标数量
-            startPosition: { x: bombButtonX, y: bombButtonY },
-            targetPositions: targetPositions,
-            onComplete: () => {
-              // 火花命中后执行瓦片消除
-              executeBombDestruction(bombTargets);
-            }
+            id: animationId,
+            sparkCount: tilesToRemove.length,
+            startPosition: bombButtonPosition,
+            targetPositions,
+            tilesToRemove,
+            onComplete: () => executeBombDestruction(tilesToRemove)
           }]);
           
-          playSound('bomb_launch'); // 发射音效
+          playSound('bomb');
+          vibrate();
         } else {
-          // 没有安全的炸弹目标，道具无效
-          Alert.alert('炸弹无效', '当前棋盘没有可以安全炸毁的瓦片对！');
+          Alert.alert('Bomb Failed', 'No tiles to remove!');
         }
         break;
         
       case 'shuffle':
-        // 重新洗牌剩余瓦片
+        // 收集所有剩余瓦片
         const remainingTiles = [];
         board.forEach(row => {
           row.forEach(tile => {
