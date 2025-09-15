@@ -856,6 +856,16 @@ export default function Game() {
     setShowModal(null);
   };
 
+  const handleTutorialNext = () => {
+    if (tutorialStep === 1) {
+      setTutorialStep(2);
+    } else if (tutorialStep === 2) {
+      setTutorialStep(0);
+      setShowModal(null);
+      setHasShownTutorial(true);
+    }
+  };
+
   // 获取初始爱心数量
   const initialHearts = GameUtils.calculateHearts(currentLevel);
 
