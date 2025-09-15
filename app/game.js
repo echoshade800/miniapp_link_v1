@@ -1333,6 +1333,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 20,
   },
+  headerSpacer: {
+    width: 40,
+  },
   levelTitle: {
     fontSize: 24,
     fontWeight: 'bold',
