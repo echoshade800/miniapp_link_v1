@@ -16,10 +16,14 @@ const SparkAnimation = ({
   targetPositions, 
   onAnimationComplete 
 }) => {
+  const SPARK_SIZE = 24;
+  const HALF = SPARK_SIZE / 2;
+
   const sparkItems = Array.from({ length: sparkCount }, (_, index) => ({
     id: index,
-    translateX: useSharedValue(startPosition.x),
-    translateY: useSharedValue(startPosition.y),
+    // 传入的坐标为“目标中心点”，将火花平移到以中心对齐
+    translateX: useSharedValue(startPosition.x - HALF),
+    translateY: useSharedValue(startPosition.y - HALF),
     opacity: useSharedValue(0),
     scale: useSharedValue(0.5),
     rotation: useSharedValue(0),
@@ -52,11 +56,11 @@ const SparkAnimation = ({
       spark.translateX.value = withDelay(
         delay + 150,
         withSequence(
-          withTiming(midX, {
+          withTiming(midX - HALF, {
             duration: 400,
             easing: Easing.out(Easing.quad),
           }),
-          withTiming(targetPos.x, {
+          withTiming(targetPos.x - HALF, {
             duration: 400,
             easing: Easing.in(Easing.quad),
           })
@@ -67,11 +71,11 @@ const SparkAnimation = ({
       spark.translateY.value = withDelay(
         delay + 150,
         withSequence(
-          withTiming(midY, {
+          withTiming(midY - HALF, {
             duration: 400,
             easing: Easing.out(Easing.quad),
           }),
-          withTiming(targetPos.y, {
+          withTiming(targetPos.y - HALF, {
             duration: 400,
             easing: Easing.in(Easing.quad),
           })
@@ -82,7 +86,7 @@ const SparkAnimation = ({
       if (index === sparkItems.length - 1) {
         spark.translateY.value = withDelay(
           delay + 950,
-          withTiming(targetPos.y, {
+          withTiming(targetPos.y - HALF, {
             duration: 0,
           }, () => {
             runOnJS(onAnimationComplete)();

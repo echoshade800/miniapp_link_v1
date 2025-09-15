@@ -23,6 +23,7 @@ import useGameStore, { GameUtils, GAME_CONSTANTS } from '../store/gameStore';
 import BambooAnimation from '../components/BambooAnimation';
 import SparkAnimation from '../components/SparkAnimation';
 import MiniBoard from '../components/MiniBoard';
+import StorageUtils from '../utils/StorageUtils';
 
 export default function Game() {
   const { 
@@ -44,6 +45,8 @@ export default function Game() {
   const [hasShownGravityTip, setHasShownGravityTip] = useState(false);
   const [hintedTiles, setHintedTiles] = useState([]); // 存储被提示高亮的瓦片位置
   const [bombTargetTiles, setBombTargetTiles] = useState([]); // 存储炸弹目标瓦片
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(1); // 1 or 2
 
   // 使用store中的状态，不使用本地状态
   const timeRemaining = gameState.timeRemaining;
@@ -300,6 +303,45 @@ export default function Game() {
       setHasShownGravityTip(true);
     }
   }, []);
+
+  // 首次进入Level 1显示两步新手引导
+  useEffect(() => {
+    const checkAndShowTutorial = async () => {
+      try {
+        const data = await StorageUtils.getData();
+        const hasShown = data?.level1GuideShown === true;
+        if (!hasShown && currentLevel === 1) {
+          setTutorialStep(1);
+          setShowTutorial(true);
+          setShowModal('tutorial');
+        }
+      } catch (e) {
+        // 读取失败也不阻塞游戏，仅在Level 1显示
+        if (currentLevel === 1) {
+          setTutorialStep(1);
+          setShowTutorial(true);
+          setShowModal('tutorial');
+        }
+      }
+    };
+    checkAndShowTutorial();
+  }, [currentLevel]);
+
+  const handleTutorialNext = () => {
+    if (tutorialStep === 1) {
+      setTutorialStep(2);
+    }
+  };
+
+  const handleTutorialFinish = async () => {
+    try {
+      await StorageUtils.setData({ level1GuideShown: true });
+    } catch (e) {
+      // ignore persist errors
+    }
+    setShowTutorial(false);
+    setShowModal(null);
+  };
   
   // 根据关卡规模计算炸弹威力
   const getBombTargetCount = (levelSize) => {
@@ -1017,32 +1059,38 @@ export default function Game() {
         // 计算要消除的瓦片数量
         const currentSize = GameUtils.getLevelSize(currentLevel);
         const removeCount = getBombRemoveCount(currentSize);
-        
-        // 随机选择要消除的瓦片
-        const tilesToRemove = selectRandomTilesToRemove(board, removeCount);
-        
+
+        // 在消除前尝试选择“保证消除后可解”的目标集合
+        const tilesToRemove = selectBombTargetsEnsuringSolvable(board, removeCount) || selectRandomTilesToRemove(board, removeCount);
+
         if (tilesToRemove.length > 0) {
-          // 计算炸弹按钮位置（火花起始位置）
-          const bombButtonPosition = { x: 60, y: 600 }; // 大概的炸弹按钮位置
-          
-          // 计算目标瓦片的屏幕位置
-          const targetPositions = tilesToRemove.map(tile => 
-            getTileScreenPosition(tile.row, tile.col)
-          );
-          
-          // 创建火花动画
-          const animationId = Date.now();
-          setSparkAnimations(prev => [...prev, {
-            id: animationId,
-            sparkCount: tilesToRemove.length,
-            startPosition: bombButtonPosition,
-            targetPositions,
-            tilesToRemove,
-            onComplete: () => executeBombDestruction(tilesToRemove)
-          }]);
-          
-          playSound('bomb');
-          vibrate();
+          // 先标记目标瓦片：底部红色指示条
+          setBombTargetTiles(tilesToRemove);
+
+          // 稍作停留，让用户看清标记，然后发射火花
+          setTimeout(() => {
+            // 计算炸弹按钮位置（火花起始位置）
+            const bombButtonPosition = { x: 60, y: 600 }; // 大概的炸弹按钮位置
+            
+            // 计算目标瓦片的屏幕位置
+            const targetPositions = tilesToRemove.map(tile => 
+              getTileScreenPosition(tile.row, tile.col)
+            );
+            
+            // 创建火花动画
+            const animationId = Date.now();
+            setSparkAnimations(prev => [...prev, {
+              id: animationId,
+              sparkCount: tilesToRemove.length,
+              startPosition: bombButtonPosition,
+              targetPositions,
+              tilesToRemove,
+              onComplete: () => executeBombDestruction(tilesToRemove)
+            }]);
+            
+            playSound('bomb');
+            vibrate();
+          }, 400); // 标记与火花之间的延迟
         } else {
           Alert.alert('Bomb Failed', 'No tiles to remove!');
         }
@@ -1091,6 +1139,54 @@ export default function Game() {
     }
   };
 
+  // 在移除前通过模拟重力来验证“消除后可解”，尽可能选择安全目标
+  const selectBombTargetsEnsuringSolvable = (currentBoard, removeCount, maxAttempts = 120) => {
+    // 收集所有非空瓦片
+    const tiles = [];
+    for (let row = 0; row < currentBoard.length; row++) {
+      for (let col = 0; col < currentBoard[0].length; col++) {
+        if (currentBoard[row][col]) {
+          tiles.push({ row, col, type: currentBoard[row][col] });
+        }
+      }
+    }
+
+    if (tiles.length === 0) return [];
+
+    // 随机尝试不同的目标组合（采样，不是穷举组合）
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const candidate = selectRandomSubset(tiles, removeCount);
+      const simulated = simulateRemovalAndGravity(currentBoard, candidate);
+      if (isBoardSolvable(simulated)) {
+        return candidate;
+      }
+    }
+    return null; // 没找到保证可解的集合
+  };
+
+  const selectRandomSubset = (arr, k) => {
+    if (k <= 0) return [];
+    const copy = [...arr];
+    // 洗牌
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy.slice(0, Math.min(k, copy.length));
+  };
+
+  const simulateRemovalAndGravity = (sourceBoard, targets) => {
+    let tempBoard = sourceBoard.map(row => [...row]);
+    targets.forEach(t => {
+      if (tempBoard[t.row] && typeof tempBoard[t.row][t.col] !== 'undefined') {
+        tempBoard[t.row][t.col] = '';
+      }
+    });
+    const currentLayout = GameUtils.getLevelLayout(currentLevel);
+    const finalBoard = applyGravityEffect(tempBoard, currentLayout);
+    return finalBoard;
+  };
+
   // 执行炸弹摧毁效果（延迟执行）
   const executeBombDestruction = (targets) => {
     // 短暂停留让用户看清目标
@@ -1108,8 +1204,13 @@ export default function Game() {
       setTimeout(() => {
         // 应用重力效果
         const currentLayout = GameUtils.getLevelLayout(currentLevel);
-        const finalBoard = applyGravityEffect(newBoard, currentLayout);
+        let finalBoard = applyGravityEffect(newBoard, currentLayout);
         
+        // 若出现死局，自动洗牌直到可解（不消耗洗牌道具）
+        if (isDeadlocked(finalBoard)) {
+          finalBoard = shuffleUntilSolvable(finalBoard, 25);
+        }
+
         // 更新棋盘
         useGameStore.setState({
           gameState: {
@@ -1124,11 +1225,42 @@ export default function Game() {
         // 检查关卡是否完成
         if (isLevelComplete(finalBoard)) {
           handleLevelComplete();
-        } else if (isDeadlocked(finalBoard)) {
-          setShowModal('deadlock');
         }
       }, 300); // 重力效果延迟300ms
     }, 500); // 火花停留500ms
+  };
+
+  // 内部洗牌，直到可解或达到尝试上限（不改变时间与道具）
+  const shuffleUntilSolvable = (currentBoard, maxTries = 30) => {
+    const flatten = [];
+    currentBoard.forEach(row => row.forEach(tile => { if (tile) flatten.push(tile); }));
+
+    for (let attempt = 0; attempt < maxTries; attempt++) {
+      // 洗牌
+      for (let i = flatten.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [flatten[i], flatten[j]] = [flatten[j], flatten[i]];
+      }
+
+      // 回填
+      let idx = 0;
+      const shuffled = currentBoard.map(row => row.map(cell => ''));
+      for (let r = 0; r < shuffled.length; r++) {
+        for (let c = 0; c < shuffled[0].length; c++) {
+          if (idx < flatten.length) {
+            shuffled[r][c] = flatten[idx++];
+          }
+        }
+      }
+
+      // 应用当前布局重力
+      const layout = GameUtils.getLevelLayout(currentLevel);
+      const afterGravity = applyGravityEffect(shuffled, layout);
+      if (isBoardSolvable(afterGravity)) {
+        return afterGravity;
+      }
+    }
+    return currentBoard; // 放弃改善，返回原局面
   };
 
   const playSound = (type) => {
@@ -1208,6 +1340,41 @@ export default function Game() {
 
   const renderModal = () => {
     if (!showModal) return null;
+
+    // 教程模态：仅使用较小的背景框（tutorialModal），不套通用modalContent
+    if (showModal === 'tutorial') {
+      return (
+        <Modal transparent animationType="fade" visible={true}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.tutorialModal}>
+              <Text style={styles.tutorialTitle}>
+                {tutorialStep === 1 ? 'Step 1 – Welcome' : 'Step 2 – How to Play'}
+              </Text>
+              <Text style={styles.tutorialMessage}>
+                {tutorialStep === 1
+                  ? 'Welcome to Link! 🎋\nMatch two identical tiles with no more than 2 turns to clear them.'
+                  : 'Tap two identical tiles to connect them.\nPaths can go around the board edges if needed.'}
+              </Text>
+              <View style={styles.tutorialButtons}>
+                {tutorialStep === 1 ? (
+                  <TouchableOpacity style={styles.tutorialButton} onPress={handleTutorialNext}>
+                    <Text style={styles.tutorialButtonText}>Next</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.tutorialButton} onPress={handleTutorialFinish}>
+                    <Text style={styles.tutorialButtonText}>Start</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.tutorialProgress}>
+                <View style={[styles.progressDot, tutorialStep === 1 && styles.progressDotActive]} />
+                <View style={[styles.progressDot, tutorialStep === 2 && styles.progressDotActive]} />
+              </View>
+            </View>
+          </View>
+        </Modal>
+      );
+    }
 
     const getModalContent = () => {
       switch (showModal) {
