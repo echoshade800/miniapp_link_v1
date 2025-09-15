@@ -43,7 +43,7 @@ export default function HomeScreen() {
         {/* Main Content */}
         <View style={styles.mainContent}>
           <Text style={styles.title}>Link</Text>
-          <Text style={styles.subtitle}>Just do it!</Text>
+          <Text style={styles.subtitle}>Tap, match, and relax!</Text>
 
           {/* Play Button */}
           <TouchableOpacity style={styles.playButton} onPress={handlePlayPress}>
