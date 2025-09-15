@@ -5,7 +5,8 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   SafeAreaView,
-  ImageBackground
+  ImageBackground,
+  Image
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -62,6 +63,15 @@ export default function HomeScreen() {
               <Text style={styles.menuButtonText}>Settings</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Panda Image */}
+        <View style={styles.pandaContainer}>
+          <Image
+            source={{ uri: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/panda.png' }}
+            style={styles.pandaImage}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Decorative Elements */}
@@ -196,5 +206,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFB6C1',
     borderRadius: 15,
     opacity: 0.7,
+  },
+  pandaContainer: {
+    position: 'absolute',
+    bottom: 50,
+    alignSelf: 'center',
+    width: '100%',
+    alignItems: 'center',
+  },
+  pandaImage: {
+    width: 120,
+    height: 120,
+    opacity: 0.8,
   },
 });
