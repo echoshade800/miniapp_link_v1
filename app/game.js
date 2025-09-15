@@ -1054,14 +1054,15 @@ export default function Game() {
     }
   };
 
-  // 执行炸弹摧毁效果（延迟执行）
-  const executeBombDestruction = (tile1, tile2) => {
+  // 执行炸弹摧毁效果（延迟执行，支持多目标）
+  const executeBombDestruction = (targets) => {
     // 短暂停留让用户看清目标
     setTimeout(() => {
-      // 消除目标瓦片
+      // 消除所有目标瓦片
       let newBoard = board.map(row => [...row]);
-      newBoard[tile1.row][tile1.col] = '';
-      newBoard[tile2.row][tile2.col] = '';
+      targets.forEach(target => {
+        newBoard[target.row][target.col] = '';
+      });
       
       // 清除炸弹目标高亮
       setBombTargetTiles([]);
