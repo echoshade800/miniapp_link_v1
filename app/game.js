@@ -1283,6 +1283,17 @@ export default function Game() {
         />
       ))}
 
+      {/* 火花飞行动画 */}
+      {sparkAnimations.map((animation) => (
+        <SparkAnimation
+          key={animation.id}
+          sparkCount={animation.sparkCount}
+          startPosition={animation.startPosition}
+          targetPositions={animation.targetPositions}
+          onAnimationComplete={() => handleSparkAnimationComplete(animation.id)}
+        />
+      ))}
+
       {renderModal()}
     </SafeAreaView>
   );
