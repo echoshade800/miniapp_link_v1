@@ -1010,12 +1010,15 @@ export default function Game() {
             }
           }]);
           
-          playSound('bomb_launch');
+          playSound('bomb_launch'); // 发射音效
+        } else {
+          // 没有安全的炸弹目标，道具无效
+          Alert.alert('炸弹无效', '当前棋盘没有可以安全炸毁的瓦片对！');
         }
         break;
         
       case 'shuffle':
-        // 收集所有剩余瓦片
+        // 重新洗牌剩余瓦片
         const remainingTiles = [];
         board.forEach(row => {
           row.forEach(tile => {
