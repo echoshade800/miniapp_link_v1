@@ -646,6 +646,22 @@ export default function Game() {
     }
   };
 
+  // 重启当前关卡
+  const handleRestart = () => {
+    // 重置所有关卡状态，但保持道具消耗
+    setSelectedTiles([]);
+    setCurrentLevelBamboo(0);
+    setHintedTiles([]);
+    setBambooAnimations([]);
+    setHasShownGravityTip(false);
+    
+    // 重新开始当前关卡
+    startLevel(currentLevel);
+    
+    // 关闭模态框
+    setShowModal(null);
+  };
+
   // 获取初始爱心数量
   const initialHearts = GameUtils.calculateHearts(currentLevel);
 
@@ -915,7 +931,7 @@ export default function Game() {
             content: 'Take a break!',
             buttons: [
               { text: 'Resume', onPress: () => setShowModal(null), style: 'primary' },
-              { text: 'Restart', onPress: () => router.replace('/game'), style: 'secondary' },
+              { text: 'Restart', onPress: handleRestart, style: 'secondary' },
               { text: 'Home', onPress: () => router.replace('/'), style: 'secondary' },
             ]
           };
@@ -933,7 +949,7 @@ export default function Game() {
             title: 'Game Over',
             content: 'Time\'s up or no hearts left!',
             buttons: [
-              { text: 'Restart', onPress: () => router.replace('/game'), style: 'primary' },
+              { text: 'Restart', onPress: handleRestart, style: 'primary' },
               { text: 'Home', onPress: () => router.replace('/'), style: 'secondary' },
             ]
           };
@@ -943,7 +959,7 @@ export default function Game() {
             content: 'Use Shuffle tool or restart the level',
             buttons: [
               { text: `Use Shuffle (${inventory.shuffle})`, onPress: () => { handleUseTool('shuffle'); setShowModal(null); }, style: 'primary', disabled: inventory.shuffle === 0 },
-              { text: 'Restart', onPress: () => router.replace('/game'), style: 'secondary' },
+              { text: 'Restart', onPress: handleRestart, style: 'secondary' },
             ]
           };
         case 'gravity-tip':
