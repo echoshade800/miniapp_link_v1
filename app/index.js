@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   pandaContainer: {
     position: 'absolute',
     bottom: 50,
-    alignSelf: 'center',
+    right: 60,
     width: '100%',
     alignItems: 'center',
   },
