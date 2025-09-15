@@ -856,16 +856,6 @@ export default function Game() {
     setShowModal(null);
   };
 
-  const handleTutorialNext = () => {
-    if (tutorialStep === 1) {
-      setTutorialStep(2);
-    } else if (tutorialStep === 2) {
-      setTutorialStep(0);
-      setShowModal(null);
-      setHasShownTutorial(true);
-    }
-  };
-
   // 获取初始爱心数量
   const initialHearts = GameUtils.calculateHearts(currentLevel);
 
@@ -1770,5 +1760,66 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     fontStyle: 'italic',
+  },
+  tutorialModal: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 30,
+    margin: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+    maxWidth: 350,
+  },
+  tutorialTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  tutorialMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 30,
+  },
+  tutorialButtons: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  tutorialButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 40,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tutorialButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  tutorialProgress: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  progressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E0E0E0',
+  },
+  progressDotActive: {
+    backgroundColor: '#4CAF50',
   },
 });
