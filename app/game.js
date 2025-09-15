@@ -312,30 +312,40 @@ export default function Game() {
 
   // 检查两次转弯路径
   const findTwoCornerPath = (r1, c1, r2, c2) => {
-    // 尝试通过边界外的路径连接
     const boardHeight = board.length;
     const boardWidth = board[0].length;
     
+    // 首先尝试棋盘内部的所有空白位置作为中转点
+    for (let row = 0; row < boardHeight; row++) {
+      for (let col = 0; col < boardWidth; col++) {
+        if (isEmpty(row, col)) {
+          const path = checkTwoCornerPath(r1, c1, row, col, r2, c2);
+          if (path.isValid) return path;
+        }
+      }
+    }
+    
+    // 然后尝试通过边界外的路径连接
     // 尝试上边界外
-    for (let col = 0; col < boardWidth; col++) {
+    for (let col = -1; col <= boardWidth; col++) {
       const path = checkTwoCornerPath(r1, c1, -1, col, r2, c2);
       if (path.isValid) return path;
     }
     
     // 尝试下边界外
-    for (let col = 0; col < boardWidth; col++) {
+    for (let col = -1; col <= boardWidth; col++) {
       const path = checkTwoCornerPath(r1, c1, boardHeight, col, r2, c2);
       if (path.isValid) return path;
     }
     
     // 尝试左边界外
-    for (let row = 0; row < boardHeight; row++) {
+    for (let row = -1; row <= boardHeight; row++) {
       const path = checkTwoCornerPath(r1, c1, row, -1, r2, c2);
       if (path.isValid) return path;
     }
     
     // 尝试右边界外
-    for (let row = 0; row < boardHeight; row++) {
+    for (let row = -1; row <= boardHeight; row++) {
       const path = checkTwoCornerPath(r1, c1, row, boardWidth, r2, c2);
       if (path.isValid) return path;
     }
@@ -345,28 +355,40 @@ export default function Game() {
 
   // 检查通过中间点的两次转弯路径
   const checkTwoCornerPath = (r1, c1, rMid, cMid, r2, c2) => {
-    // 检查从起点到中间点的L形路径
-    const path1 = findOneCornerPath(r1, c1, rMid, cMid);
-    if (!path1.isValid) {
-      // 尝试直线路径
-      const straightPath1 = findStraightPath(r1, c1, rMid, cMid);
-      if (!straightPath1.isValid) return { isValid: false, path: [] };
-      
-      // 检查从中间点到终点的直线路径
-      const straightPath2 = findStraightPath(rMid, cMid, r2, c2);
-      if (!straightPath2.isValid) return { isValid: false, path: [] };
-      
+    // 中间点必须为空（如果在棋盘内）
+    if (!isEmpty(rMid, cMid)) {
+      return { isValid: false, path: [] };
+    }
+    
+    // 尝试两种路径组合：
+    // 1. 起点 -> 中间点（直线） -> 终点（直线）
+    const straightPath1 = findStraightPath(r1, c1, rMid, cMid);
+    const straightPath2 = findStraightPath(rMid, cMid, r2, c2);
+    
+    if (straightPath1.isValid && straightPath2.isValid) {
       const fullPath = [...straightPath1.path, { row: rMid, col: cMid }, ...straightPath2.path];
       return { isValid: true, path: fullPath };
     }
     
-    // 检查从中间点到终点的直线路径
-    const path2 = findStraightPath(rMid, cMid, r2, c2);
-    if (!path2.isValid) return { isValid: false, path: [] };
+    // 2. 起点 -> 中间点（L形） -> 终点（直线）
+    const lPath1 = findOneCornerPath(r1, c1, rMid, cMid);
+    const straightPath3 = findStraightPath(rMid, cMid, r2, c2);
     
-    // 合并路径
-    const fullPath = [...path1.path, { row: rMid, col: cMid }, ...path2.path];
-    return { isValid: true, path: fullPath };
+    if (lPath1.isValid && straightPath3.isValid) {
+      const fullPath = [...lPath1.path, { row: rMid, col: cMid }, ...straightPath3.path];
+      return { isValid: true, path: fullPath };
+    }
+    
+    // 3. 起点 -> 中间点（直线） -> 终点（L形）
+    const straightPath4 = findStraightPath(r1, c1, rMid, cMid);
+    const lPath2 = findOneCornerPath(rMid, cMid, r2, c2);
+    
+    if (straightPath4.isValid && lPath2.isValid) {
+      const fullPath = [...straightPath4.path, { row: rMid, col: cMid }, ...lPath2.path];
+      return { isValid: true, path: fullPath };
+    }
+    
+    return { isValid: false, path: [] };
   };
 
   const handleSuccessfulMatch = (tile1, tile2) => {
