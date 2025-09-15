@@ -934,6 +934,30 @@ export default function Game() {
             }
           });
           
+          // 创建火花动画效果
+          const sparkAnimationId = Date.now() + 1000;
+          const tileSize = 34;
+          const boardOffsetX = 15;
+          const boardOffsetY = 200;
+          
+          const sparkStartX = boardOffsetX + (tile1.col + tile2.col) / 2 * tileSize + tileSize / 2;
+          const sparkStartY = boardOffsetY + (tile1.row + tile2.row) / 2 * tileSize + tileSize / 2;
+          
+          const sparkTargetPositions = [];
+          for (let i = 0; i < 5; i++) {
+            sparkTargetPositions.push({
+              x: sparkStartX + (Math.random() - 0.5) * 100,
+              y: sparkStartY + (Math.random() - 0.5) * 100
+            });
+          }
+          
+          setSparkAnimations(prev => [...prev, {
+            id: sparkAnimationId,
+            sparkCount: 5,
+            startPosition: { x: sparkStartX, y: sparkStartY },
+            targetPositions: sparkTargetPositions
+          }]);
+          
           // 计算并添加竹子奖励
           const earnedBamboo = pathResult.turns + 1;
           const animationPositions = calculateBambooStartPositions(pathResult.path, earnedBamboo, tile1, tile2);
