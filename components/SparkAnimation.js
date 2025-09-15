@@ -39,25 +39,25 @@ const SparkAnimation = ({
       spark.rotation.value = withDelay(
         delay,
         withTiming(360 * (Math.random() > 0.5 ? 1 : -1), {
-          duration: 600,
+          duration: 800,
           easing: Easing.out(Easing.cubic),
         })
       );
       
       // 抛物线飞行轨迹
       const midX = (startPosition.x + targetPos.x) / 2;
-      const midY = Math.min(startPosition.y, targetPos.y) - 50; // 抛物线顶点
+      const midY = Math.min(startPosition.y, targetPos.y) - 80; // 更高的抛物线顶点
       
       // X轴移动：起点 → 中点 → 终点
       spark.translateX.value = withDelay(
         delay + 150,
         withSequence(
           withTiming(midX, {
-            duration: 300,
+            duration: 400,
             easing: Easing.out(Easing.quad),
           }),
           withTiming(targetPos.x, {
-            duration: 300,
+            duration: 400,
             easing: Easing.in(Easing.quad),
           })
         )
@@ -68,11 +68,11 @@ const SparkAnimation = ({
         delay + 150,
         withSequence(
           withTiming(midY, {
-            duration: 300,
+            duration: 400,
             easing: Easing.out(Easing.quad),
           }),
           withTiming(targetPos.y, {
-            duration: 300,
+            duration: 400,
             easing: Easing.in(Easing.quad),
           })
         )
@@ -81,7 +81,7 @@ const SparkAnimation = ({
       // 最后一个火花动画完成后回调
       if (index === sparkItems.length - 1) {
         spark.translateY.value = withDelay(
-          delay + 750,
+          delay + 950,
           withTiming(targetPos.y, {
             duration: 0,
           }, () => {
@@ -107,7 +107,7 @@ const SparkAnimation = ({
 
         return (
           <Animated.View key={spark.id} style={[styles.sparkItem, animatedStyle]}>
-            <Text style={styles.sparkEmoji}>💥</Text>
+            <Text style={styles.sparkEmoji}>🔥</Text>
           </Animated.View>
         );
       })}
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sparkEmoji: {
-    fontSize: 24,
+    fontSize: 20,
   },
 });
 

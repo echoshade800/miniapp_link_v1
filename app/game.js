@@ -43,6 +43,7 @@ export default function Game() {
   const [sparkAnimations, setSparkAnimations] = useState([]);
   const [hasShownGravityTip, setHasShownGravityTip] = useState(false);
   const [hintedTiles, setHintedTiles] = useState([]); // 存储被提示高亮的瓦片位置
+  const [bombTargetTiles, setBombTargetTiles] = useState([]); // 存储炸弹目标瓦片
 
   // 使用store中的状态，不使用本地状态
   const timeRemaining = gameState.timeRemaining;
@@ -103,6 +104,54 @@ export default function Game() {
     }
     
     return false; // 没有找到任何可连接的瓦片对
+  };
+
+  // 安全的随机炸弹目标选择
+  const findSafeRandomBombTarget = (currentBoard) => {
+    // 统计每种瓦片的数量和位置
+    const tileStats = {};
+    
+    for (let row = 0; row < currentBoard.length; row++) {
+      for (let col = 0; col < currentBoard[0].length; col++) {
+        const tile = currentBoard[row][col];
+        if (tile) {
+          if (!tileStats[tile]) {
+            tileStats[tile] = [];
+          }
+          tileStats[tile].push({ row, col, type: tile });
+        }
+      }
+    }
+    
+    // 找到数量≥2的瓦片类型（安全炸弹目标）
+    const safeTileTypes = [];
+    for (const [type, positions] of Object.entries(tileStats)) {
+      if (positions.length >= 2) {
+        safeTileTypes.push({ type, positions });
+      }
+    }
+    
+    if (safeTileTypes.length === 0) {
+      return null; // 没有安全的炸弹目标
+    }
+    
+    // 随机选择一种瓦片类型
+    const randomTypeData = safeTileTypes[Math.floor(Math.random() * safeTileTypes.length)];
+    
+    // 从该类型中随机选择2个瓦片
+    const positions = randomTypeData.positions;
+    const shuffledPositions = [...positions];
+    
+    // 洗牌算法
+    for (let i = shuffledPositions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledPositions[i], shuffledPositions[j]] = [shuffledPositions[j], shuffledPositions[i]];
+    }
+    
+    return {
+      tile1: shuffledPositions[0],
+      tile2: shuffledPositions[1]
+    };
   };
 
   // 生成基础棋盘（简单随机分布）
@@ -913,63 +962,52 @@ export default function Game() {
         break;
         
       case 'bomb':
-        // 寻找可连接的瓦片对并自动消除
-        const bombPair = findConnectablePair(board);
+        // 寻找安全的随机炸弹目标
+        const bombPair = findSafeRandomBombTarget(board);
         if (bombPair) {
-          const { tile1, tile2, pathResult } = bombPair;
+          const { tile1, tile2 } = bombPair;
           
-          // 自动消除这对瓦片
-          let newBoard = board.map(row => [...row]);
-          newBoard[tile1.row][tile1.col] = '';
-          newBoard[tile2.row][tile2.col] = '';
+          // 设置炸弹目标瓦片（用于高亮显示）
+          setBombTargetTiles([
+            { row: tile1.row, col: tile1.col },
+            { row: tile2.row, col: tile2.col }
+          ]);
           
-          // 应用重力效果
-          const currentLayout = GameUtils.getLevelLayout(currentLevel);
-          newBoard = applyGravityEffect(newBoard, currentLayout);
+          // 计算炸弹按钮位置（大概位置）
+          const bombButtonX = 60; // 炸弹按钮的X位置
+          const bombButtonY = 600; // 炸弹按钮的Y位置
           
-          // 更新棋盘
-          useGameStore.setState({
-            gameState: {
-              ...gameState,
-              board: newBoard
-            }
-          });
-          
-          // 创建火花动画效果
-          const sparkAnimationId = Date.now() + 1000;
+          // 计算目标瓦片位置
           const tileSize = 34;
           const boardOffsetX = 15;
           const boardOffsetY = 200;
           
-          const sparkStartX = boardOffsetX + (tile1.col + tile2.col) / 2 * tileSize + tileSize / 2;
-          const sparkStartY = boardOffsetY + (tile1.row + tile2.row) / 2 * tileSize + tileSize / 2;
+          const target1X = boardOffsetX + tile1.col * tileSize + tileSize / 2;
+          const target1Y = boardOffsetY + tile1.row * tileSize + tileSize / 2;
+          const target2X = boardOffsetX + tile2.col * tileSize + tileSize / 2;
+          const target2Y = boardOffsetY + tile2.row * tileSize + tileSize / 2;
           
-          const sparkTargetPositions = [];
-          for (let i = 0; i < 5; i++) {
-            sparkTargetPositions.push({
-              x: sparkStartX + (Math.random() - 0.5) * 100,
-              y: sparkStartY + (Math.random() - 0.5) * 100
-            });
-          }
-          
+          // 创建火花发射动画
+          const sparkAnimationId = Date.now();
           setSparkAnimations(prev => [...prev, {
             id: sparkAnimationId,
-            sparkCount: 5,
-            startPosition: { x: sparkStartX, y: sparkStartY },
-            targetPositions: sparkTargetPositions
+            sparkCount: 2, // 两个火花分别飞向两个目标
+            startPosition: { x: bombButtonX, y: bombButtonY },
+            targetPositions: [
+              { x: target1X, y: target1Y },
+              { x: target2X, y: target2Y }
+            ],
+            onComplete: () => {
+              // 火花命中后执行瓦片消除
+              executeBombDestruction(tile1, tile2);
+            }
           }]);
           
-          playSound('success');
-          vibrate();
-          
-          // 检查关卡是否完成
-          if (isLevelComplete(newBoard)) {
-            handleLevelComplete();
-          } else if (isDeadlocked(newBoard)) {
-            setShowModal('deadlock');
-          }
+          playSound('bomb_launch'); // 发射音效
         } else {
-          // No connectable pairs found to remove - could add visual feedback here if needed
+          // 没有安全的炸弹目标，道具无效
+          Alert.alert('炸弹无效', '当前棋盘没有可以安全炸毁的瓦片对！');
+          // 这里可以选择返还道具或者提示用户
         }
         break;
         
@@ -1016,9 +1054,66 @@ export default function Game() {
     }
   };
 
+  // 执行炸弹摧毁效果（延迟执行）
+  const executeBombDestruction = (tile1, tile2) => {
+    // 短暂停留让用户看清目标
+    setTimeout(() => {
+      // 消除目标瓦片
+      let newBoard = board.map(row => [...row]);
+      newBoard[tile1.row][tile1.col] = '';
+      newBoard[tile2.row][tile2.col] = '';
+      
+      // 清除炸弹目标高亮
+      setBombTargetTiles([]);
+      
+      // 延迟应用重力效果，让用户看到消除过程
+      setTimeout(() => {
+        // 应用重力效果
+        const currentLayout = GameUtils.getLevelLayout(currentLevel);
+        const finalBoard = applyGravityEffect(newBoard, currentLayout);
+        
+        // 更新棋盘
+        useGameStore.setState({
+          gameState: {
+            ...gameState,
+            board: finalBoard
+          }
+        });
+        
+        playSound('success');
+        vibrate();
+        
+        // 检查关卡是否完成
+        if (isLevelComplete(finalBoard)) {
+          handleLevelComplete();
+        } else if (isDeadlocked(finalBoard)) {
+          setShowModal('deadlock');
+        }
+      }, 300); // 重力效果延迟300ms
+    }, 500); // 火花停留500ms
+  };
+
   const playSound = (type) => {
     // TODO: Implement sound effects based on settings.sfxOn
     if (!settings.sfxOn) return;
+    
+    // 可以根据不同类型播放不同音效
+    switch (type) {
+      case 'bomb_launch':
+        // 炸弹发射音效
+        break;
+      case 'tap':
+        // 点击音效
+        break;
+      case 'success':
+        // 成功音效
+        break;
+      case 'fail':
+        // 失败音效
+        break;
+      default:
+        break;
+    }
   };
 
   const vibrate = () => {
@@ -1050,6 +1145,7 @@ export default function Game() {
   const renderTile = (tile, row, col) => {
     const isSelected = selectedTiles.some(t => t.row === row && t.col === col);
     const isHinted = hintedTiles.some(t => t.row === row && t.col === col);
+    const isBombTarget = bombTargetTiles.some(t => t.row === row && t.col === col);
     const isEmpty = !tile;
     
     if (isEmpty) {
@@ -1062,7 +1158,8 @@ export default function Game() {
         style={[
           styles.tile, 
           isSelected && styles.selectedTile,
-          isHinted && styles.hintedTile
+          isHinted && styles.hintedTile,
+          isBombTarget && styles.bombTargetTile
         ]}
         onPress={() => handleTilePress(row, col)}
       >
@@ -1070,6 +1167,7 @@ export default function Game() {
       </TouchableOpacity>
     );
   };
+          
 
   const renderModal = () => {
     if (!showModal) return null;
@@ -1478,6 +1576,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE082',
     borderColor: '#FFC107',
     shadowColor: '#FFC107',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  bombTargetTile: {
+    backgroundColor: '#FFCDD2',
+    borderColor: '#F44336',
+    shadowColor: '#F44336',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 8,
