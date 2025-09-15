@@ -1035,6 +1035,12 @@ export default function Game() {
 
   const handleSparkAnimationComplete = (animationId) => {
     setSparkAnimations(prev => prev.filter(anim => anim.id !== animationId));
+    
+    // 查找对应的动画并执行回调
+    const animation = sparkAnimations.find(anim => anim.id === animationId);
+    if (animation && animation.onComplete) {
+      animation.onComplete();
+    }
   };
 
   const renderTile = (tile, row, col) => {
