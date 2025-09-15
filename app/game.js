@@ -645,6 +645,9 @@ export default function Game() {
     }
   };
 
+  // 获取初始爱心数量
+  const initialHearts = GameUtils.calculateHearts(currentLevel);
+
   const isLevelComplete = (currentBoard) => {
     return currentBoard.every(row => row.every(tile => !tile));
   };
@@ -938,8 +941,10 @@ export default function Game() {
           
           <View style={styles.statItem}>
             <View style={styles.heartsContainer}>
-              {Array.from({ length: heartsRemaining }).map((_, index) => (
-                <Text key={index} style={styles.heartEmoji}>❤️</Text>
+              {Array.from({ length: initialHearts }).map((_, index) => (
+                <Text key={index} style={styles.heartEmoji}>
+                  {index < heartsRemaining ? '❤️' : '🩶'}
+                </Text>
               ))}
             </View>
           </View>
