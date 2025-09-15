@@ -999,7 +999,7 @@ export default function Game() {
             ],
             onComplete: () => {
               // 火花命中后执行瓦片消除
-              executeBombDestruction(tile1, tile2);
+             executeBombDestruction(bombTargets);
             }
           }]);
           
