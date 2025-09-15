@@ -67,8 +67,43 @@ export default function Game() {
   // Emoji tile types for the game
   const emojiTiles = ['🌸', '🍀', '🎯', '🏠', '🌞', '🎨', '🎵', '🍎', '🦋', '⭐', '🎪', '🌈', '🎭', '🎲', '🎸'];
 
-  // 生成棋盘的函数
-  const generateBoard = (size, kinds) => {
+  // 检查棋盘是否可解（至少有一对可连接的瓦片）
+  const isBoardSolvable = (board) => {
+    // 收集所有非空瓦片
+    const tiles = [];
+    for (let row = 0; row < board.length; row++) {
+      for (let col = 0; col < board[0].length; col++) {
+        if (board[row][col]) {
+          tiles.push({
+            row,
+            col,
+            type: board[row][col]
+          });
+        }
+      }
+    }
+    
+    // 检查是否存在至少一对可连接的瓦片
+    for (let i = 0; i < tiles.length; i++) {
+      for (let j = i + 1; j < tiles.length; j++) {
+        const tile1 = tiles[i];
+        const tile2 = tiles[j];
+        
+        // 只检查相同类型的瓦片
+        if (tile1.type === tile2.type) {
+          const pathResult = findPath(tile1, tile2);
+          if (pathResult.isValid) {
+            return true; // 找到可连接的瓦片对
+          }
+        }
+      }
+    }
+    
+    return false; // 没有找到任何可连接的瓦片对
+  };
+
+  // 生成基础棋盘（简单随机分布）
+  const generateBasicBoard = (size, kinds) => {
     const [rows, cols] = GameUtils.getBoardDimensions(size);
     const pairs = size / 2;
     const availableEmojis = emojiTiles.slice(0, kinds);
@@ -102,6 +137,105 @@ export default function Game() {
     return newBoard;
   };
 
+  // 生成可解的棋盘（带验证）
+  const generateSolvableBoard = (size, kinds, maxAttempts = 50) => {
+    let attempts = 0;
+    let board;
+    
+    do {
+      board = generateBasicBoard(size, kinds);
+      attempts++;
+      
+      // 如果尝试次数过多，使用智能生成
+      if (attempts >= maxAttempts) {
+        board = generateIntelligentBoard(size, kinds);
+        break;
+      }
+    } while (!isBoardSolvable(board));
+    
+    return board;
+  };
+
+  // 智能生成棋盘（确保可解）
+  const generateIntelligentBoard = (size, kinds) => {
+    const [rows, cols] = GameUtils.getBoardDimensions(size);
+    const pairs = size / 2;
+    const availableEmojis = emojiTiles.slice(0, kinds);
+    
+    // 创建空棋盘
+    const board = Array(rows).fill().map(() => Array(cols).fill(''));
+    
+    // 创建瓦片对列表
+    const tilePairs = [];
+    for (let i = 0; i < pairs; i++) {
+      const emoji = availableEmojis[i % kinds];
+      tilePairs.push(emoji);
+    }
+    
+    // 洗牌瓦片对
+    for (let i = tilePairs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tilePairs[i], tilePairs[j]] = [tilePairs[j], tilePairs[i]];
+    }
+    
+    // 智能放置瓦片对
+    for (const tileType of tilePairs) {
+      const positions = findBestPositionsForPair(board, rows, cols);
+      if (positions.length >= 2) {
+        // 放置一对瓦片
+        board[positions[0].row][positions[0].col] = tileType;
+        board[positions[1].row][positions[1].col] = tileType;
+      }
+    }
+    
+    return board;
+  };
+
+  // 为瓦片对寻找最佳放置位置
+  const findBestPositionsForPair = (board, rows, cols) => {
+    const emptyPositions = [];
+    
+    // 收集所有空位置
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (!board[row][col]) {
+          emptyPositions.push({ row, col });
+        }
+      }
+    }
+    
+    // 洗牌空位置以增加随机性
+    for (let i = emptyPositions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [emptyPositions[i], emptyPositions[j]] = [emptyPositions[j], emptyPositions[i]];
+    }
+    
+    // 尝试找到可连接的位置对
+    for (let i = 0; i < emptyPositions.length; i++) {
+      for (let j = i + 1; j < emptyPositions.length; j++) {
+        const pos1 = emptyPositions[i];
+        const pos2 = emptyPositions[j];
+        
+        // 临时放置瓦片来测试连接性
+        const tempTile1 = { row: pos1.row, col: pos1.col, type: 'test' };
+        const tempTile2 = { row: pos2.row, col: pos2.col, type: 'test' };
+        
+        // 检查这两个位置是否可以连接
+        const pathResult = findPath(tempTile1, tempTile2);
+        if (pathResult.isValid) {
+          return [pos1, pos2];
+        }
+      }
+    }
+    
+    // 如果没有找到理想位置，返回前两个空位置
+    return emptyPositions.slice(0, 2);
+  };
+
+  // 生成棋盘的主函数
+  const generateBoard = (size, kinds) => {
+    return generateSolvableBoard(size, kinds);
+  };
   // Timer effect
   useEffect(() => {
     // 组件挂载时自动开始当前关卡
