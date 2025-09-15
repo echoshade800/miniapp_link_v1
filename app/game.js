@@ -22,6 +22,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import useGameStore, { GameUtils, GAME_CONSTANTS } from '../store/gameStore';
 import BambooAnimation from '../components/BambooAnimation';
 import SparkAnimation from '../components/SparkAnimation';
+import MiniBoard from '../components/MiniBoard';
 
 export default function Game() {
   const { 
@@ -1108,9 +1109,30 @@ export default function Game() {
             title: 'No Valid Moves!',
             content: 'Use Shuffle tool or restart the level',
             buttons: [
+              { text: 'View Board', onPress: () => setShowModal('view-deadlock'), style: 'secondary' },
               { text: `Use Shuffle (${inventory.shuffle})`, onPress: () => { handleUseTool('shuffle'); setShowModal(null); }, style: 'primary', disabled: inventory.shuffle === 0 },
               { text: 'Restart', onPress: handleRestart, style: 'secondary' },
               { text: 'Home', onPress: () => router.replace('/'), style: 'secondary' },
+            ]
+          };
+        case 'view-deadlock':
+          return {
+            title: 'Deadlock Board',
+            content: (
+              <View style={styles.deadlockView}>
+                <Text style={styles.deadlockText}>
+                  Current board state with no valid moves:
+                </Text>
+                <MiniBoard board={board} />
+                <Text style={styles.deadlockHint}>
+                  Use Shuffle to rearrange tiles or restart the level
+                </Text>
+              </View>
+            ),
+            buttons: [
+              { text: 'Back', onPress: () => setShowModal('deadlock'), style: 'secondary' },
+              { text: `Use Shuffle (${inventory.shuffle})`, onPress: () => { handleUseTool('shuffle'); setShowModal(null); }, style: 'primary', disabled: inventory.shuffle === 0 },
+              { text: 'Restart', onPress: handleRestart, style: 'primary' },
             ]
           };
         case 'gravity-tip':
@@ -1578,5 +1600,21 @@ const styles = StyleSheet.create({
   },
   modalButtonTextDisabled: {
     color: '#CCC',
+  },
+  deadlockView: {
+    alignItems: 'center',
+  },
+  deadlockText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  deadlockHint: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 12,
+    fontStyle: 'italic',
   },
 });
