@@ -106,8 +106,8 @@ export default function Game() {
     return false; // 没有找到任何可连接的瓦片对
   };
 
-  // 安全的随机炸弹目标选择
-  const findSafeRandomBombTarget = (currentBoard) => {
+  // 安全的随机炸弹目标选择（支持多目标）
+  const findSafeRandomBombTargets = (currentBoard, targetCount) => {
     // 统计每种瓦片的数量和位置
     const tileStats = {};
     
@@ -123,10 +123,11 @@ export default function Game() {
       }
     }
     
-    // 找到数量≥2的瓦片类型（安全炸弹目标）
+    // 找到数量≥targetCount且消除后剩余数量为偶数的瓦片类型（安全炸弹目标）
     const safeTileTypes = [];
     for (const [type, positions] of Object.entries(tileStats)) {
-      if (positions.length >= 2) {
+      const remainingAfterBomb = positions.length - targetCount;
+      if (positions.length >= targetCount && remainingAfterBomb >= 0 && remainingAfterBomb % 2 === 0) {
         safeTileTypes.push({ type, positions });
       }
     }
@@ -138,7 +139,7 @@ export default function Game() {
     // 随机选择一种瓦片类型
     const randomTypeData = safeTileTypes[Math.floor(Math.random() * safeTileTypes.length)];
     
-    // 从该类型中随机选择2个瓦片
+    // 从该类型中随机选择targetCount个瓦片
     const positions = randomTypeData.positions;
     const shuffledPositions = [...positions];
     
@@ -148,10 +149,8 @@ export default function Game() {
       [shuffledPositions[i], shuffledPositions[j]] = [shuffledPositions[j], shuffledPositions[i]];
     }
     
-    return {
-      tile1: shuffledPositions[0],
-      tile2: shuffledPositions[1]
-    };
+    // 返回指定数量的目标瓦片
+    return shuffledPositions.slice(0, targetCount);
   };
 
   // 生成基础棋盘（简单随机分布）
@@ -302,6 +301,14 @@ export default function Game() {
     }
   }, []);
   
+  // 根据关卡规模计算炸弹威力
+  const getBombTargetCount = (levelSize) => {
+    if (levelSize === 20) return 2;      // 小关卡：2个瓦片
+    if (levelSize === 60) return 4;      // 中关卡：4个瓦片
+    if (levelSize === 80) return 6;      // 大关卡：6个瓦片
+    return 2; // 默认值
+  };
+
   // 监听关卡变化，重置重力提示状态
   useEffect(() => {
     setHasShownGravityTip(false);
@@ -962,44 +969,44 @@ export default function Game() {
         break;
         
       case 'bomb':
+        // 根据关卡规模确定炸弹威力
+        const currentSize = GameUtils.getLevelSize(currentLevel);
+        const targetCount = getBombTargetCount(currentSize);
+        
         // 寻找安全的随机炸弹目标
-        const bombPair = findSafeRandomBombTarget(board);
-        if (bombPair) {
-          const { tile1, tile2 } = bombPair;
+        const bombTargets = findSafeRandomBombTargets(board, targetCount);
+        if (bombTargets && bombTargets.length === targetCount) {
           
           // 设置炸弹目标瓦片（用于高亮显示）
-          setBombTargetTiles([
-            { row: tile1.row, col: tile1.col },
-            { row: tile2.row, col: tile2.col }
-          ]);
+          setBombTargetTiles(bombTargets.map(target => ({
+            row: target.row,
+            col: target.col
+          })));
           
           // 计算炸弹按钮位置（大概位置）
           const bombButtonX = 60; // 炸弹按钮的X位置
           const bombButtonY = 600; // 炸弹按钮的Y位置
           
-          // 计算目标瓦片位置
+          // 计算所有目标瓦片位置
           const tileSize = 34;
           const boardOffsetX = 15;
           const boardOffsetY = 200;
           
-          const target1X = boardOffsetX + tile1.col * tileSize + tileSize / 2;
-          const target1Y = boardOffsetY + tile1.row * tileSize + tileSize / 2;
-          const target2X = boardOffsetX + tile2.col * tileSize + tileSize / 2;
-          const target2Y = boardOffsetY + tile2.row * tileSize + tileSize / 2;
+          const targetPositions = bombTargets.map(target => ({
+            x: boardOffsetX + target.col * tileSize + tileSize / 2,
+            y: boardOffsetY + target.row * tileSize + tileSize / 2
+          }));
           
           // 创建火花发射动画
           const sparkAnimationId = Date.now();
           setSparkAnimations(prev => [...prev, {
             id: sparkAnimationId,
-            sparkCount: 2, // 两个火花分别飞向两个目标
+            sparkCount: targetCount, // 火花数量等于目标数量
             startPosition: { x: bombButtonX, y: bombButtonY },
-            targetPositions: [
-              { x: target1X, y: target1Y },
-              { x: target2X, y: target2Y }
-            ],
+            targetPositions: targetPositions,
             onComplete: () => {
               // 火花命中后执行瓦片消除
-              executeBombDestruction(tile1, tile2);
+              executeBombDestruction(bombTargets);
             }
           }]);
           
@@ -1007,7 +1014,6 @@ export default function Game() {
         } else {
           // 没有安全的炸弹目标，道具无效
           Alert.alert('炸弹无效', '当前棋盘没有可以安全炸毁的瓦片对！');
-          // 这里可以选择返还道具或者提示用户
         }
         break;
         
@@ -1055,13 +1061,14 @@ export default function Game() {
   };
 
   // 执行炸弹摧毁效果（延迟执行）
-  const executeBombDestruction = (tile1, tile2) => {
+  const executeBombDestruction = (targets) => {
     // 短暂停留让用户看清目标
     setTimeout(() => {
-      // 消除目标瓦片
+      // 消除所有目标瓦片
       let newBoard = board.map(row => [...row]);
-      newBoard[tile1.row][tile1.col] = '';
-      newBoard[tile2.row][tile2.col] = '';
+      targets.forEach(target => {
+        newBoard[target.row][target.col] = '';
+      });
       
       // 清除炸弹目标高亮
       setBombTargetTiles([]);
