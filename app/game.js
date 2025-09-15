@@ -45,6 +45,12 @@ export default function Game() {
   const heartsRemaining = gameState.heartsRemaining;
   const board = gameState.board;
   
+  // 计算进度条相关数据
+  const currentSize = GameUtils.getLevelSize(currentLevel);
+  const totalPairs = currentSize / 2;
+  const eliminatedPairs = Math.floor(currentLevelBamboo / 1); // 假设每对至少1竹子，实际可能更多
+  const progressPercentage = totalPairs > 0 ? (eliminatedPairs / totalPairs) * 100 : 0;
+  
   // 获取当前关卡的重力模式信息
   const gravityModeInfo = GameUtils.getGravityModeInfo(currentLevel);
 
@@ -855,7 +861,7 @@ export default function Game() {
               <Text style={styles.bambooIcon}>🎋</Text>
             </View>
             <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '60%' }]} />
+              <View style={[styles.progressFill, { width: `${Math.min(progressPercentage, 100)}%` }]} />
             </View>
           </View>
           <Text style={styles.progressText}>+{currentLevelBamboo}</Text>
