@@ -1,4 +1,4 @@
-const { getDefaultConfig } = require('expo/metro-config');
+const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
 const path = require('path');
 
 /**
@@ -7,15 +7,13 @@ const path = require('path');
  *
  * @type {import('metro-config').MetroConfig}
  */
-const config = getDefaultConfig(__dirname);
-
-// Enable require.context for Expo Router
-config.transformer.unstable_allowRequireContext = true;
-
-// Add path alias support
-config.resolver.alias = {
-  '@': path.resolve(__dirname, './'),
+const config = {
+  resolver: {
+    alias: {
+      '@': path.resolve(__dirname, './'),
+    },
+  },
 };
 
-module.exports = config;
+module.exports = mergeConfig(getDefaultConfig(__dirname), config);
 
