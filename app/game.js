@@ -1346,9 +1346,6 @@ export default function Game() {
             <MaterialIcons name="home" size={24} color="#5A8F7B" />
           </TouchableOpacity>
         </View>
-
-      </ImageBackground>
-    </SafeAreaView>
         {/* Progress Section */}
         <View style={styles.progressSection}>
           <View style={styles.progressContainer}>
