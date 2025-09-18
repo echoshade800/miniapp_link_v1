@@ -1348,7 +1348,7 @@ export default function Game() {
         </View>
 
       </ImageBackground>
-    </View>
+    </SafeAreaView>
         {/* Progress Section */}
         <View style={styles.progressSection}>
           <View style={styles.progressContainer}>
