@@ -15,25 +15,33 @@ import {
   Modal,
   Vibration,
   ImageBackground,
-  Image
+  Image,
+  Switch,
+  Dimensions
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import useGameStore, { GameUtils, GAME_CONSTANTS } from '../store/gameStore';
 import BambooAnimation from '../components/BambooAnimation';
 import SparkAnimation from '../components/SparkAnimation';
 import MiniBoard from '../components/MiniBoard';
+import ConnectionLine from '../components/ConnectionLine';
 import StorageUtils from '../utils/StorageUtils';
+import soundManager from '../utils/SoundUtils';
 
 export default function Game() {
   const { 
     gameState, 
-    currentLevel, 
+    currentLevel,
+    maxLevel,
     inventory,
     settings,
     useTool,
     completeLevel,
-    startLevel
+    startLevel,
+    updateSettings
   } = useGameStore();
 
   const [selectedTiles, setSelectedTiles] = useState([]);
@@ -47,6 +55,8 @@ export default function Game() {
   const [bombTargetTiles, setBombTargetTiles] = useState([]); // 存储炸弹目标瓦片
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(1); // 1 or 2
+  const [errorMessage, setErrorMessage] = useState(null); // 错误提示信息
+  const [connectionLines, setConnectionLines] = useState([]); // 连接线动画
 
   // 使用store中的状态，不使用本地状态
   const timeRemaining = gameState.timeRemaining;
@@ -302,7 +312,39 @@ export default function Game() {
       setShowModal('gravity-tip');
       setHasShownGravityTip(true);
     }
+    
+    // 开始播放背景音乐
+    if (settings.musicOn) {
+      soundManager.playBackgroundMusic(0.4);
+    }
+    
+    // 组件卸载时停止背景音乐
+    return () => {
+      soundManager.pauseBackgroundMusic();
+    };
   }, []);
+
+  // 监听音乐设置变化
+  useEffect(() => {
+    if (settings.musicOn) {
+      soundManager.playBackgroundMusic(0.4);
+    } else {
+      soundManager.pauseBackgroundMusic();
+    }
+  }, [settings.musicOn]);
+
+  // 监听游戏暂停状态，控制背景音乐
+  useEffect(() => {
+    if (settings.musicOn) {
+      if (showModal) {
+        // 显示模态框时暂停背景音乐
+        soundManager.pauseBackgroundMusic();
+      } else {
+        // 关闭模态框时恢复背景音乐
+        soundManager.playBackgroundMusic(0.4);
+      }
+    }
+  }, [showModal, settings.musicOn]);
 
   // 首次进入Level 1显示两步新手引导
   useEffect(() => {
@@ -404,7 +446,7 @@ export default function Game() {
   */
 
   const handleTilePress = (row, col) => {
-    if (isPaused || showModal || !board[row][col]) return;
+    if (isPaused || showModal || !board[row][col] || timeRemaining <= 0) return;
 
     const tilePos = { row, col, type: board[row][col] };
     
@@ -419,19 +461,34 @@ export default function Game() {
         // Deselect same tile
         setSelectedTiles([]);
         playSound('tap');
-      } else if (firstTile.type === tilePos.type) {
-        // Same type - check if valid path (TODO: Implement path validation)
-        const pathResult = isValidPath(firstTile, tilePos);
-        if (pathResult.isValid) {
-          // Valid match
-          handleSuccessfulMatch(firstTile, tilePos);
-        } else {
-          // Invalid path
-          handleInvalidMatch();
-        }
       } else {
-        // Different types
-        handleInvalidMatch();
+        // First set the second tile as selected to show visual feedback
+        setSelectedTiles([firstTile, tilePos]);
+        playSound('tap');
+        
+        // Then check if they can be matched
+        if (firstTile.type === tilePos.type) {
+          // Same type - check if valid path
+          const pathResult = isValidPath(firstTile, tilePos);
+          if (pathResult.isValid) {
+            // Valid match - delay slightly to show selection
+            setTimeout(() => {
+              handleSuccessfulMatch(firstTile, tilePos);
+            }, 100);
+          } else {
+            // Invalid path - show unified error message
+            setTimeout(() => {
+              showErrorTip("Invalid connection rule~");
+              handleInvalidMatch();
+            }, 100);
+          }
+        } else {
+          // Different types
+          setTimeout(() => {
+            showErrorTip("Invalid connection rule~");
+            handleInvalidMatch();
+          }, 100);
+        }
       }
     }
   };
@@ -637,6 +694,33 @@ export default function Game() {
   };
 
   const handleSuccessfulMatch = (tile1, tile2) => {
+    // Calculate path and show connection line first
+    const pathResult = findPath(tile1, tile2);
+    
+    // Get screen positions for connection line
+    const startPos = getTileScreenPosition(tile1.row, tile1.col);
+    const endPos = getTileScreenPosition(tile2.row, tile2.col);
+    
+    // Convert path points to screen coordinates
+    const pathPoints = pathResult.path.map(point => 
+      getTileScreenPosition(point.row, point.col)
+    );
+    
+    // Create connection line animation
+    const lineId = Date.now();
+    setConnectionLines(prev => [...prev, {
+      id: lineId,
+      startPosition: startPos,
+      endPosition: endPos,
+      pathPoints: pathPoints,
+      onComplete: () => {
+        handleConnectionLineComplete(lineId);
+        executeSuccessfulMatch(tile1, tile2, pathResult);
+      }
+    }]);
+  };
+
+  const executeSuccessfulMatch = (tile1, tile2, pathResult) => {
     // Remove tiles and apply gravity
     let newBoard = board.map(row => [...row]);
     newBoard[tile1.row][tile1.col] = '';
@@ -654,31 +738,34 @@ export default function Game() {
       }
     });
     
-    // Calculate bamboo based on path turns
-    const pathResult = findPath(tile1, tile2);
+    // Calculate bamboo based on path turns (only for first-time completion)
     const earnedBamboo = pathResult.turns + 1; // 0转弯=1竹子, 1转弯=2竹子, 2转弯=3竹子
+    const isFirstTime = currentLevel > maxLevel;
     
-    // 计算竹子动画的起始位置（从连接线的拐角开始）
-    const animationPositions = calculateBambooStartPositions(pathResult.path, earnedBamboo, tile1, tile2);
-    
-    // 目标位置（竹子进度条的竹子图标位置）
-    const endX = 60; // 竹子进度条图标的位置
-    const endY = 120;
-    
-    // 创建竹子飞行动画
-    const animationId = Date.now();
-    setBambooAnimations(prev => [...prev, {
-      id: animationId,
-      bambooCount: earnedBamboo,
-      startPositions: animationPositions,
-      endPosition: { x: endX, y: endY },
-    }]);
-    
-    setCurrentLevelBamboo(prev => prev + earnedBamboo);
+    // 只有首次通关才给予竹子奖励和动画
+    if (isFirstTime) {
+      // 计算竹子动画的起始位置（从连接线的拐角开始）
+      const animationPositions = calculateBambooStartPositions(pathResult.path, earnedBamboo, tile1, tile2);
+      
+      // 目标位置（竹子进度条的竹子图标位置）
+      const endX = 60; // 竹子进度条图标的位置
+      const endY = 120;
+      
+      // 创建竹子飞行动画
+      const animationId = Date.now();
+      setBambooAnimations(prev => [...prev, {
+        id: animationId,
+        bambooCount: earnedBamboo,
+        startPositions: animationPositions,
+        endPosition: { x: endX, y: endY },
+      }]);
+      
+      setCurrentLevelBamboo(prev => prev + earnedBamboo);
+    }
     
     setSelectedTiles([]);
     playSound('success');
-    vibrate();
+    vibrate('light'); // 轻柔震动表示成功匹配
     
     // Check if level complete
     if (isLevelComplete(newBoard)) {
@@ -827,12 +914,31 @@ export default function Game() {
         break;
 
       case 'Split':
-        // Tiles split left and right from center
+        // Tiles split left and right from center based on their position
         for (let row = 0; row < rows; row++) {
-          const rowTiles = [];
+          const leftTiles = [];
+          const rightTiles = [];
+          const centerCol = Math.floor(cols / 2);
+          
+          // Collect tiles based on their position relative to center
           for (let col = 0; col < cols; col++) {
             if (newBoard[row][col]) {
-              rowTiles.push(newBoard[row][col]);
+              if (col < centerCol) {
+                // Left side tiles
+                leftTiles.push(newBoard[row][col]);
+              } else if (col > centerCol) {
+                // Right side tiles
+                rightTiles.push(newBoard[row][col]);
+              } else {
+                // Center column - decide based on odd/even columns
+                if (cols % 2 === 1) {
+                  // Odd columns: center tile goes to left
+                  leftTiles.push(newBoard[row][col]);
+                } else {
+                  // Even columns: no true center, this shouldn't happen
+                  leftTiles.push(newBoard[row][col]);
+                }
+              }
             }
           }
           
@@ -841,16 +947,12 @@ export default function Game() {
             newBoard[row][col] = '';
           }
           
-          // Split tiles: half go left, half go right
-          const leftTiles = rowTiles.slice(0, Math.ceil(rowTiles.length / 2));
-          const rightTiles = rowTiles.slice(Math.ceil(rowTiles.length / 2));
-          
-          // Place left tiles from left side
+          // Place left tiles from left side (maintain their relative order)
           for (let i = 0; i < leftTiles.length; i++) {
             newBoard[row][i] = leftTiles[i];
           }
           
-          // Place right tiles from right side
+          // Place right tiles from right side (maintain their relative order)
           for (let i = 0; i < rightTiles.length; i++) {
             newBoard[row][cols - rightTiles.length + i] = rightTiles[i];
           }
@@ -874,11 +976,20 @@ export default function Game() {
     });
     setSelectedTiles([]);
     playSound('fail');
-    vibrate();
+    vibrate('error'); // 错误震动表示失败
     
     if (newHearts <= 0) {
       handleGameOver('hearts');
     }
+  };
+
+  // 显示错误提示
+  const showErrorTip = (message) => {
+    setErrorMessage(message);
+    // 3秒后自动消失
+    setTimeout(() => {
+      setErrorMessage(null);
+    }, 3000);
   };
 
   // 重启当前关卡
@@ -942,8 +1053,11 @@ export default function Game() {
   };
 
   const handleLevelComplete = () => {
-    const finalTime = gameState.timeRemaining - timeRemaining;
-    const earnedBamboo = completeLevel(currentLevel, currentLevelBamboo, finalTime);
+    // 计算实际用时：初始时间 - 剩余时间
+    const initialTime = GameUtils.calculateTimeLimit(currentLevel);
+    const usedTime = initialTime - timeRemaining;
+    const isFirstTime = currentLevel > maxLevel; // 只有当前关卡大于最大已通关关卡时才是首次通关
+    const earnedBamboo = completeLevel(currentLevel, currentLevelBamboo, usedTime, isFirstTime);
     setShowModal('complete');
   };
 
@@ -988,13 +1102,39 @@ export default function Game() {
 
   // 计算瓦片在屏幕上的位置
   const getTileScreenPosition = (row, col) => {
-    const tileSize = 34; // 瓦片大小包含间距
-    const boardOffsetX = 15; // 棋盘在屏幕中的X偏移
-    const boardOffsetY = 200; // 棋盘在屏幕中的Y偏移（大概位置）
+    // 动态计算棋盘的实际位置
+    const headerHeight = 64; // Header 高度（paddingVertical: 15 * 2 + 内容约34px）
+    const progressHeight = 80; // Progress Section 高度
+    const statsHeight = 50; // Game Stats 高度
+    const errorHeight = errorMessage ? 60 : 0; // Error Message 高度（如果显示）
+    const toolsHeight = 120; // Tools 高度
+    
+    // 计算可用于棋盘的空间
+    const { height: screenHeight, width: screenWidth } = Dimensions.get('window');
+    const safeAreaTop = 44; // 大概的安全区域顶部高度
+    const availableHeight = screenHeight - safeAreaTop - headerHeight - progressHeight - statsHeight - errorHeight - toolsHeight;
+    
+    // 棋盘容器的padding
+    const boardContainerPaddingX = 15;
+    const boardPadding = 8;
+    
+    // 计算棋盘尺寸
+    const [rows, cols] = GameUtils.getBoardDimensions(GameUtils.getLevelSize(currentLevel));
+    const tileSize = 32; // 单个瓦片大小
+    const tileMargin = 1; // 瓦片间距
+    const actualTileSize = tileSize + tileMargin * 2; // 包含间距的瓦片大小
+    
+    const boardWidth = cols * actualTileSize;
+    const boardHeight = rows * actualTileSize;
+    
+    // 计算棋盘在屏幕中的起始位置（相对于整个屏幕）
+    const boardStartY = safeAreaTop + headerHeight + progressHeight + statsHeight + errorHeight + 
+                       (availableHeight - boardHeight - boardPadding * 2) / 2 + boardPadding;
+    const boardStartX = (screenWidth - boardWidth) / 2 + boardPadding;
     
     return {
-      x: boardOffsetX + col * tileSize + tileSize / 2,
-      y: boardOffsetY + row * tileSize + tileSize / 2
+      x: boardStartX + col * actualTileSize + actualTileSize / 2,
+      y: boardStartY + row * actualTileSize + actualTileSize / 2
     };
   };
 
@@ -1006,32 +1146,55 @@ export default function Game() {
     return 2; // 默认值
   };
 
-  // 随机选择要消除的瓦片
+  // 随机选择要消除的瓦片对
   const selectRandomTilesToRemove = (currentBoard, removeCount) => {
-    // 收集所有非空瓦片
-    const tiles = [];
+    // 统计每种瓦片的位置
+    const tilesByType = {};
     for (let row = 0; row < currentBoard.length; row++) {
       for (let col = 0; col < currentBoard[0].length; col++) {
-        if (currentBoard[row][col]) {
-          tiles.push({
-            row,
-            col,
-            type: currentBoard[row][col]
-          });
+        const tile = currentBoard[row][col];
+        if (tile) {
+          if (!tilesByType[tile]) {
+            tilesByType[tile] = [];
+          }
+          tilesByType[tile].push({ row, col, type: tile });
         }
       }
     }
     
-    // 洗牌并选择指定数量的瓦片
-    for (let i = tiles.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+    // 找出所有可以成对消除的瓦片类型
+    const availablePairs = [];
+    for (const [type, positions] of Object.entries(tilesByType)) {
+      if (positions.length >= 2) {
+        // 可以形成至少一对的瓦片类型
+        const pairCount = Math.floor(positions.length / 2);
+        for (let i = 0; i < pairCount; i++) {
+          availablePairs.push({ type, positions: positions.slice(i * 2, (i + 1) * 2) });
+        }
+      }
     }
     
-    return tiles.slice(0, Math.min(removeCount, tiles.length));
+    // 洗牌可用的瓦片对
+    for (let i = availablePairs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availablePairs[i], availablePairs[j]] = [availablePairs[j], availablePairs[i]];
+    }
+    
+    // 选择指定数量的瓦片对，确保总瓦片数不超过removeCount
+    const selectedTiles = [];
+    const pairsToSelect = Math.floor(removeCount / 2);
+    
+    for (let i = 0; i < Math.min(pairsToSelect, availablePairs.length); i++) {
+      selectedTiles.push(...availablePairs[i].positions);
+    }
+    
+    return selectedTiles;
   };
 
   const handleUseTool = (toolType) => {
+    // 时间结束后不能使用工具
+    if (timeRemaining <= 0) return;
+    
     const success = useTool(toolType);
     if (!success) return;
 
@@ -1089,7 +1252,7 @@ export default function Game() {
             }]);
             
             playSound('bomb');
-            vibrate();
+            vibrate('medium'); // 中等震动表示炸弹爆炸
           }, 400); // 标记与火花之间的延迟
         } else {
           Alert.alert('Bomb Failed', 'No tiles to remove!');
@@ -1139,26 +1302,55 @@ export default function Game() {
     }
   };
 
-  // 在移除前通过模拟重力来验证"消除后可解"，尽可能选择安全目标
-  const selectBombTargetsEnsuringSolvable = (currentBoard, removeCount, maxAttempts = 120) => {
-    // 收集所有非空瓦片
-    const tiles = [];
+  // 在移除前通过模拟重力来验证"消除后可解"，尽可能选择安全目标对
+  const selectBombTargetsEnsuringSolvable = (currentBoard, removeCount, maxAttempts = 50) => {
+    // 统计每种瓦片的位置
+    const tilesByType = {};
     for (let row = 0; row < currentBoard.length; row++) {
       for (let col = 0; col < currentBoard[0].length; col++) {
-        if (currentBoard[row][col]) {
-          tiles.push({ row, col, type: currentBoard[row][col] });
+        const tile = currentBoard[row][col];
+        if (tile) {
+          if (!tilesByType[tile]) {
+            tilesByType[tile] = [];
+          }
+          tilesByType[tile].push({ row, col, type: tile });
+        }
+      }
+    }
+    
+    // 找出所有可以成对消除的瓦片类型
+    const availablePairs = [];
+    for (const [type, positions] of Object.entries(tilesByType)) {
+      if (positions.length >= 2) {
+        const pairCount = Math.floor(positions.length / 2);
+        for (let i = 0; i < pairCount; i++) {
+          availablePairs.push({ type, positions: positions.slice(i * 2, (i + 1) * 2) });
         }
       }
     }
 
-    if (tiles.length === 0) return [];
+    if (availablePairs.length === 0) return [];
 
-    // 随机尝试不同的目标组合（采样，不是穷举组合）
+    const pairsToSelect = Math.floor(removeCount / 2);
+    
+    // 随机尝试不同的瓦片对组合
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const candidate = selectRandomSubset(tiles, removeCount);
-      const simulated = simulateRemovalAndGravity(currentBoard, candidate);
+      // 洗牌可用的瓦片对
+      const shuffledPairs = [...availablePairs];
+      for (let i = shuffledPairs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledPairs[i], shuffledPairs[j]] = [shuffledPairs[j], shuffledPairs[i]];
+      }
+      
+      // 选择指定数量的瓦片对
+      const selectedTiles = [];
+      for (let i = 0; i < Math.min(pairsToSelect, shuffledPairs.length); i++) {
+        selectedTiles.push(...shuffledPairs[i].positions);
+      }
+      
+      const simulated = simulateRemovalAndGravity(currentBoard, selectedTiles);
       if (isBoardSolvable(simulated)) {
-        return candidate;
+        return selectedTiles;
       }
     }
     return null; // 没找到保证可解的集合
@@ -1220,7 +1412,7 @@ export default function Game() {
         });
         
         playSound('success');
-        vibrate();
+        vibrate('light'); // 轻柔震动表示洗牌成功
         
         // 检查关卡是否完成
         if (isLevelComplete(finalBoard)) {
@@ -1263,32 +1455,63 @@ export default function Game() {
     return currentBoard; // 放弃改善，返回原局面
   };
 
-  const playSound = (type) => {
-    // TODO: Implement sound effects based on settings.sfxOn
+  const playSound = async (type) => {
     if (!settings.sfxOn) return;
     
-    // 可以根据不同类型播放不同音效
-    switch (type) {
-      case 'bomb_launch':
-        // 炸弹发射音效
-        break;
-      case 'tap':
-        // 点击音效
-        break;
-      case 'success':
-        // 成功音效
-        break;
-      case 'fail':
-        // 失败音效
-        break;
-      default:
-        break;
+    try {
+      switch (type) {
+        case 'success':
+          await soundManager.playSound('success', 0.8);
+          break;
+        case 'tap':
+          // TODO: Add tap sound if needed
+          break;
+        case 'fail':
+          // TODO: Add fail sound if needed
+          break;
+        case 'bomb':
+          // TODO: Add bomb sound if needed
+          break;
+        case 'bomb_launch':
+          // TODO: Add bomb launch sound if needed
+          break;
+        default:
+          console.log(`Sound type ${type} not implemented`);
+          break;
+      }
+    } catch (error) {
+      console.warn('Error playing sound:', error);
     }
   };
 
-  const vibrate = () => {
-    if (settings.hapticsOn) {
-      Vibration.vibrate(100);
+  const vibrate = (type = 'light') => {
+    if (!settings.hapticsOn) return;
+    
+    try {
+      switch (type) {
+        case 'light':
+          // 轻柔的震动，用于瓦片匹配成功
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          break;
+        case 'medium':
+          // 中等震动，用于炸弹等特殊操作
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          break;
+        case 'selection':
+          // 选择反馈，用于点击等操作
+          Haptics.selectionAsync();
+          break;
+        case 'error':
+          // 错误提示震动
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          break;
+        default:
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (error) {
+      // 如果 expo-haptics 不可用，回退到传统震动
+      console.warn('Haptics not available, using fallback vibration');
+      Vibration.vibrate(50); // 缩短为50ms
     }
   };
 
@@ -1309,6 +1532,16 @@ export default function Game() {
     const animation = sparkAnimations.find(anim => anim.id === animationId);
     if (animation && animation.onComplete) {
       animation.onComplete();
+    }
+  };
+
+  const handleConnectionLineComplete = (lineId) => {
+    setConnectionLines(prev => prev.filter(line => line.id !== lineId));
+    
+    // 查找对应的连接线并执行回调
+    const line = connectionLines.find(l => l.id === lineId);
+    if (line && line.onComplete) {
+      line.onComplete();
     }
   };
 
@@ -1381,7 +1614,54 @@ export default function Game() {
         case 'pause':
           return {
             title: 'Game Paused',
-            content: 'Take a break!',
+            content: (
+              <View style={styles.pauseContent}>
+                <Text style={styles.pauseText}>Take a break!</Text>
+                
+                <View style={styles.settingsSection}>
+                  <Text style={styles.settingsTitle}>Settings</Text>
+                  
+                  <View style={styles.settingItem}>
+                    <Text style={styles.settingLabel}>Background Music</Text>
+                    <Switch
+                      value={settings.musicOn}
+                      onValueChange={(value) => updateSettings({ musicOn: value })}
+                      trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+                      thumbColor={settings.musicOn ? '#FFF' : '#FFF'}
+                    />
+                  </View>
+                  
+                  <View style={styles.settingItem}>
+                    <Text style={styles.settingLabel}>Sound Effects</Text>
+                    <Switch
+                      value={settings.sfxOn}
+                      onValueChange={(value) => updateSettings({ sfxOn: value })}
+                      trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+                      thumbColor={settings.sfxOn ? '#FFF' : '#FFF'}
+                    />
+                  </View>
+                  
+                  <View style={styles.settingItem}>
+                    <Text style={styles.settingLabel}>Vibration Feedback</Text>
+                    <Switch
+                      value={settings.hapticsOn}
+                      onValueChange={(value) => updateSettings({ hapticsOn: value })}
+                      trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+                      thumbColor={settings.hapticsOn ? '#FFF' : '#FFF'}
+                    />
+                  </View>
+                </View>
+              </View>
+            ),
+            buttons: [
+              { text: 'Resume', onPress: () => setShowModal(null), style: 'primary' },
+              { text: 'Restart', onPress: handleRestart, style: 'secondary' },
+            ]
+          };
+        case 'home':
+          return {
+            title: 'Game Menu',
+            content: 'What would you like to do?',
             buttons: [
               { text: 'Resume', onPress: () => setShowModal(null), style: 'primary' },
               { text: 'Restart', onPress: handleRestart, style: 'secondary' },
@@ -1389,9 +1669,12 @@ export default function Game() {
             ]
           };
         case 'complete':
+          const isFirstTime = currentLevel > maxLevel;
           return {
             title: '🎉 Level Complete!',
-            content: `Congratulations! You earned ${currentLevelBamboo} bamboo!`,
+            content: isFirstTime 
+              ? `Congratulations! You earned ${currentLevelBamboo} bamboo!`
+              : `Level completed! (No bamboo for replay)`,
             buttons: [
               { text: 'Next Level', onPress: () => router.replace('/game'), style: 'primary' },
               { text: 'Home', onPress: () => router.replace('/'), style: 'secondary' },
@@ -1453,6 +1736,52 @@ export default function Game() {
     const modalContent = getModalContent();
     if (!modalContent) return null;
 
+    // Special rendering for level complete modal with background image
+    if (showModal === 'complete') {
+      return (
+        <Modal transparent animationType="fade" visible={!!showModal}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.completeModalContainer}>
+              <ImageBackground
+                source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/win.png' }}
+                style={styles.completeModalBackground}
+                resizeMode="cover"
+              >
+                <View style={styles.completeModalContent}>
+                  <Text style={styles.completeModalTitle}>{modalContent.title}</Text>
+                  <Text style={styles.completeModalText}>{modalContent.content}</Text>
+                  
+                  <View style={styles.modalButtons}>
+                    {modalContent.buttons.map((button, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.modalButton,
+                          styles.completeModalButton,
+                          button.style === 'primary' ? styles.modalButtonPrimary : styles.modalButtonSecondary,
+                          button.disabled && styles.modalButtonDisabled,
+                        ]}
+                        onPress={button.onPress}
+                        disabled={button.disabled}
+                      >
+                        <Text style={[
+                          styles.modalButtonText,
+                          styles.completeModalButtonText, // White text for all buttons in complete modal
+                          button.disabled && styles.modalButtonTextDisabled,
+                        ]}>
+                          {button.text}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </ImageBackground>
+            </View>
+          </View>
+        </Modal>
+      );
+    }
+
     return (
       <Modal transparent animationType="fade" visible={!!showModal}>
         <View style={styles.modalOverlay}>
@@ -1491,7 +1820,7 @@ export default function Game() {
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={{ uri: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/game_background.png' }}
+        source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/gamebackground.png' }}
         style={styles.backgroundContainer}
         resizeMode="cover"
       >
@@ -1508,7 +1837,7 @@ export default function Game() {
           
           <TouchableOpacity 
             style={styles.homeButton} 
-            onPress={() => setShowModal('pause')}
+            onPress={() => setShowModal('home')}
           >
             <MaterialIcons name="home" size={24} color="#5A8F7B" />
           </TouchableOpacity>
@@ -1529,7 +1858,9 @@ export default function Game() {
               <View style={[styles.progressFill, { width: `${Math.min(progressPercentage, 100)}%` }]} />
             </View>
           </View>
-          <Text style={styles.progressText}>+{currentLevelBamboo}</Text>
+          <Text style={styles.progressText}>
+            {currentLevel > maxLevel ? `+${currentLevelBamboo}` : 'Replay'}
+          </Text>
         </View>
 
         {/* Game Stats */}
@@ -1550,6 +1881,20 @@ export default function Game() {
           </View>
         </View>
 
+        {/* Error Message */}
+        {errorMessage && (
+          <View style={styles.errorMessageContainer}>
+            <LinearGradient
+              colors={['#4A90E2', '#50C9C3']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.errorMessageGradient}
+            >
+              <Text style={styles.errorMessage}>{errorMessage}</Text>
+            </LinearGradient>
+          </View>
+        )}
+
         {/* Game Board */}
         <View style={styles.boardContainer}>
           <View style={styles.board}>
@@ -1566,12 +1911,12 @@ export default function Game() {
         {/* Tools */}
         <View style={styles.toolsContainer}>
           <TouchableOpacity
-            style={[styles.toolButton, inventory.bomb === 0 && styles.toolButtonDisabled]}
+            style={[styles.toolButton, (inventory.bomb === 0 || timeRemaining <= 0) && styles.toolButtonDisabled]}
             onPress={() => handleUseTool('bomb')}
-            disabled={inventory.bomb === 0}
+            disabled={inventory.bomb === 0 || timeRemaining <= 0}
           >
             <Image 
-              source={{ uri: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/boomtab.png' }}
+              source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/boomtab.png' }}
               style={styles.toolIconImage}
             />
             <View style={styles.toolBadge}>
@@ -1580,12 +1925,12 @@ export default function Game() {
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles.toolButton, inventory.hint === 0 && styles.toolButtonDisabled]}
+            style={[styles.toolButton, (inventory.hint === 0 || timeRemaining <= 0) && styles.toolButtonDisabled]}
             onPress={() => handleUseTool('hint')}
-            disabled={inventory.hint === 0}
+            disabled={inventory.hint === 0 || timeRemaining <= 0}
           >
             <Image 
-              source={{ uri: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/lighttab.png' }}
+              source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/lighttab.png' }}
               style={styles.toolIconImage}
             />
             <View style={styles.toolBadge}>
@@ -1594,12 +1939,12 @@ export default function Game() {
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles.toolButton, inventory.shuffle === 0 && styles.toolButtonDisabled]}
+            style={[styles.toolButton, (inventory.shuffle === 0 || timeRemaining <= 0) && styles.toolButtonDisabled]}
             onPress={() => handleUseTool('shuffle')}
-            disabled={inventory.shuffle === 0}
+            disabled={inventory.shuffle === 0 || timeRemaining <= 0}
           >
             <Image 
-              source={{ uri: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/washtab.png' }}
+              source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/washtab.png' }}
               style={styles.toolIconImage}
             />
             <View style={styles.toolBadge}>
@@ -1628,6 +1973,17 @@ export default function Game() {
           startPosition={animation.startPosition}
           targetPositions={animation.targetPositions}
           onAnimationComplete={() => handleSparkAnimationComplete(animation.id)}
+        />
+      ))}
+
+      {/* 连接线动画 */}
+      {connectionLines.map((line) => (
+        <ConnectionLine
+          key={line.id}
+          startPosition={line.startPosition}
+          endPosition={line.endPosition}
+          pathPoints={line.pathPoints}
+          onAnimationComplete={line.onComplete}
         />
       ))}
 
@@ -1988,5 +2344,125 @@ const styles = StyleSheet.create({
   },
   progressDotActive: {
     backgroundColor: '#4CAF50',
+  },
+  pauseContent: {
+    alignItems: 'center',
+  },
+  pauseText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  settingsSection: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  settingsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  settingLabel: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  errorMessageContainer: {
+    position: 'absolute',
+    top: 220, // 位于统计行下方
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    zIndex: 1000,
+  },
+  errorMessageGradient: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  // Complete modal with background image styles
+  completeModalContainer: {
+    margin: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  completeModalBackground: {
+    width: '100%',
+    minHeight: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  completeModalContent: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    margin: 20,
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  completeModalTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  completeModalText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  completeModalButton: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  completeModalButtonText: {
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

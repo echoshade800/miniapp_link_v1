@@ -13,9 +13,9 @@ export const GAME_CONSTANTS = {
     Split: 1.15
   },
   TOOL_PRICES: {
-    hint: 15,
-    bomb: 25,
-    shuffle: 20
+    hint: 50,
+    bomb: 80,
+    shuffle: 70
   },
   TILE_KINDS: [
     '🌸', '🍀', '🎯', '🏠', '🌞', '🎨', '🎵', '🍎', '🦋', '⭐', 
@@ -32,7 +32,7 @@ export const GameUtils = {
     const layout = GameUtils.getLevelLayout(level);
     const kinds = GameUtils.getLevelKinds(level);
     
-    const Tpp = Math.max(1.8, 3.8 - 0.08 * Math.floor((level - 1) / 2));
+    const Tpp = Math.max(1.4, 3.0 - 0.10 * Math.floor((level - 1) / 2));
     const layoutFactor = GAME_CONSTANTS.LAYOUT_FACTORS[layout];
     const kindFactor = 1 + 0.025 * (kinds - 3);
     

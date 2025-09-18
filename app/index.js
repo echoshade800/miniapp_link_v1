@@ -13,9 +13,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import useGameStore from '../store/gameStore';
 
 export default function HomeScreen() {
-  const { bambooBalance } = useGameStore();
+  const { bambooBalance, currentLevel, startLevel } = useGameStore();
 
   const handlePlayPress = () => {
+    // 重新开始当前关卡
+    startLevel(currentLevel);
     router.push('/game');
   };
 
@@ -30,7 +32,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={{ uri: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/background.png' }}
+        source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/background.png' }}
         style={styles.backgroundContainer}
         resizeMode="cover"
       >
@@ -68,7 +70,7 @@ export default function HomeScreen() {
         {/* Panda Image */}
         <View style={styles.pandaContainer}>
           <Image
-            source={{ uri: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/panda.png' }}
+            source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/panda.png' }}
             style={styles.pandaImage}
             resizeMode="contain"
           />

@@ -1,206 +1,256 @@
-# Game.js 文件说明文档
+# Game.js - 核心游戏组件文档
 
 ## 概述
 
-`app/game.js` 是 Link 拼图游戏的核心游戏页面组件，负责实现完整的游戏玩法逻辑、UI渲染和用户交互。
+`app/game.js` 是 Link 拼图游戏的核心游戏页面，实现了完整的连连看游戏逻辑。玩家需要在限定时间内连接相同的瓦片对，路径转弯次数不能超过2次。
 
-## 文件职责
+## 主要功能
 
-### 主要功能
-- 🎮 **游戏核心逻辑**：瓦片连接验证、路径查找算法
-- 🎨 **游戏界面渲染**：棋盘显示、瓦片动画、UI控件
-- ⏱️ **游戏状态管理**：时间倒计时、心数管理、得分计算
-- 🔧 **道具系统**：提示、炸弹、洗牌功能实现
-- 📱 **用户交互**：触摸事件处理、手势识别
+### 🎮 核心游戏机制
+- **瓦片连接验证**：实现≤2转弯的路径查找算法
+- **多种重力模式**：支持6种不同的瓦片移动方式
+- **时间压力系统**：每关都有计算好的时间限制
+- **心数管理**：错误次数限制，增加策略性
 
-### 技术特性
-- 使用 React Native 构建跨平台游戏界面
-- 集成 react-native-reanimated 实现流畅动画
-- 与 Zustand store 深度集成进行状态管理
-- 支持多种重力模式和布局变化
+### 🎨 用户界面
+- **响应式棋盘**：自适应不同屏幕尺寸
+- **流畅动画**：瓦片选择、连接、消除动画
+- **实时反馈**：路径显示、得分动画
+- **直观控制**：暂停、重启、道具使用
 
-## 组件结构
+### 🔧 道具系统
+- **提示工具**：高亮显示可连接的瓦片对
+- **炸弹工具**：直接移除一对可连接瓦片
+- **洗牌工具**：重新排列剩余瓦片
 
+## 技术架构
+
+### 状态管理
 ```javascript
-export default function Game() {
-  // 状态管理
-  const gameState = useGameStore(state => state.gameState);
-  const { startLevel, completeLevel, useTool } = useGameStore();
-  
-  // 本地状态
-  const [selectedTiles, setSelectedTiles] = useState([]);
-  const [animatingTiles, setAnimatingTiles] = useState([]);
-  const [showPath, setShowPath] = useState(null);
-  
-  // 游戏逻辑
-  const handleTilePress = (row, col) => { /* 瓦片点击处理 */ };
-  const findPath = (start, end) => { /* 路径查找算法 */ };
-  const validateConnection = (tile1, tile2) => { /* 连接验证 */ };
-  
-  // UI渲染
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* 游戏界面组件 */}
-    </SafeAreaView>
-  );
-}
+// 本地状态
+const [selectedTiles, setSelectedTiles] = useState([]);
+const [board, setBoard] = useState([]);
+const [animatingTiles, setAnimatingTiles] = useState([]);
+const [showPath, setShowPath] = useState(null);
+
+// 全局状态（来自 gameStore）
+const { gameState, startLevel, completeLevel, useTool } = useGameStore();
 ```
 
-## 核心算法
+### 核心算法
 
-### 1. 路径查找算法
+#### 路径查找算法
 ```javascript
 /**
  * 查找两个瓦片之间的连接路径
- * 规则：路径转弯次数 ≤ 2次
- * @param {Object} start - 起始瓦片坐标 {row, col}
- * @param {Object} end - 目标瓦片坐标 {row, col}
- * @returns {Array|null} - 路径坐标数组或null
+ * @param {Object} start - 起始位置 {row, col}
+ * @param {Object} end - 目标位置 {row, col}
+ * @returns {Array|null} - 路径数组或null
  */
 const findPath = (start, end) => {
-  // 直线连接（0转弯）
+  // 1. 直线连接（0转弯）
   if (canConnectDirectly(start, end)) {
     return generateDirectPath(start, end);
   }
   
-  // 一次转弯连接
+  // 2. 一次转弯连接
   const oneCornerPath = findOneCornerPath(start, end);
   if (oneCornerPath) return oneCornerPath;
   
-  // 两次转弯连接
-  const twoCornerPath = findTwoCornerPath(start, end);
-  return twoCornerPath;
+  // 3. 两次转弯连接
+  return findTwoCornerPath(start, end);
 };
 ```
 
-### 2. 重力系统实现
+#### 重力系统
 ```javascript
-/**
- * 根据重力模式移动瓦片
- * @param {string} gravityMode - 重力模式：Static/Left/Right/Up/Down/Split
- * @param {Array} board - 当前棋盘状态
- * @param {Array} removedPositions - 被移除的瓦片位置
- */
-const applyGravity = (gravityMode, board, removedPositions) => {
-  switch (gravityMode) {
-    case 'Left': return moveLeft(board, removedPositions);
-    case 'Right': return moveRight(board, removedPositions);
-    case 'Up': return moveUp(board, removedPositions);
-    case 'Down': return moveDown(board, removedPositions);
-    case 'Split': return moveSplit(board, removedPositions);
-    default: return board; // Static模式
+const applyGravity = (mode, board, removedPositions) => {
+  switch (mode) {
+    case 'Left': return slideLeft(board);
+    case 'Right': return slideRight(board);
+    case 'Up': return slideUp(board);
+    case 'Down': return slideDown(board);
+    case 'Split': return slideSplit(board);
+    default: return board; // Static
   }
 };
 ```
 
-## 游戏状态流程
-
-### 游戏生命周期
-```mermaid
-graph TD
-    A[游戏开始] --> B[初始化棋盘]
-    B --> C[等待用户操作]
-    C --> D[选择第一个瓦片]
-    D --> E[选择第二个瓦片]
-    E --> F{瓦片匹配?}
-    F -->|是| G[查找连接路径]
-    F -->|否| H[取消选择]
-    G --> I{路径有效?}
-    I -->|是| J[移除瓦片对]
-    I -->|否| H
-    J --> K[应用重力效果]
-    K --> L[更新得分]
-    L --> M{游戏结束?}
-    M -->|胜利| N[关卡完成]
-    M -->|失败| O[游戏失败]
-    M -->|继续| C
-    H --> C
-```
-
-### 状态更新流程
-1. **瓦片选择** → 更新 `selectedTiles` 状态
-2. **路径验证** → 显示连接路径动画
-3. **瓦片移除** → 触发消除动画
-4. **重力应用** → 瓦片位置重新计算
-5. **得分更新** → 同步到全局状态
-
-## UI组件层次
+## 组件结构
 
 ```
-Game (主容器)
-├── GameHeader (游戏顶部信息)
-│   ├── TimeDisplay (时间显示)
-│   ├── HeartDisplay (心数显示)
-│   ├── ScoreDisplay (得分显示)
-│   └── PauseButton (暂停按钮)
-├── GameBoard (游戏棋盘)
-│   ├── TileGrid (瓦片网格)
-│   │   └── Tile[] (瓦片组件数组)
-│   ├── PathOverlay (路径显示层)
-│   └── AnimationLayer (动画层)
-├── GameTools (道具栏)
-│   ├── HintButton (提示按钮)
-│   ├── BombButton (炸弹按钮)
-│   └── ShuffleButton (洗牌按钮)
-└── GameFooter (游戏底部)
-    ├── HomeButton (主页按钮)
-    └── RestartButton (重新开始按钮)
+Game
+├── GameHeader
+│   ├── Timer (倒计时显示)
+│   ├── Hearts (心数显示)
+│   ├── Score (得分显示)
+│   └── PauseButton
+├── GameBoard
+│   ├── TileGrid
+│   │   └── Tile[] (瓦片数组)
+│   ├── PathOverlay (路径显示)
+│   └── AnimationLayer
+├── ToolBar
+│   ├── HintTool
+│   ├── BombTool
+│   └── ShuffleTool
+└── GameFooter
+    ├── HomeButton
+    └── RestartButton
+```
+
+## 游戏流程
+
+### 1. 游戏初始化
+```javascript
+useEffect(() => {
+  // 从 gameStore 获取关卡信息
+  const level = gameState.currentLevel;
+  const board = gameState.board;
+  
+  // 初始化本地状态
+  setBoard(board);
+  setSelectedTiles([]);
+  
+  // 启动计时器
+  startTimer();
+}, [gameState.currentLevel]);
+```
+
+### 2. 瓦片选择逻辑
+```javascript
+const handleTilePress = (row, col) => {
+  const tile = board[row][col];
+  
+  // 忽略空瓦片
+  if (!tile) return;
+  
+  if (selectedTiles.length === 0) {
+    // 选择第一个瓦片
+    setSelectedTiles([{row, col, tile}]);
+  } else if (selectedTiles.length === 1) {
+    const firstTile = selectedTiles[0];
+    
+    // 点击同一个瓦片取消选择
+    if (firstTile.row === row && firstTile.col === col) {
+      setSelectedTiles([]);
+      return;
+    }
+    
+    // 检查瓦片是否匹配
+    if (firstTile.tile === tile) {
+      // 查找连接路径
+      const path = findPath(firstTile, {row, col});
+      
+      if (path) {
+        // 连接成功
+        handleSuccessfulConnection(firstTile, {row, col, tile}, path);
+      } else {
+        // 连接失败
+        handleFailedConnection();
+      }
+    } else {
+      // 瓦片不匹配
+      setSelectedTiles([{row, col, tile}]);
+    }
+  }
+};
+```
+
+### 3. 连接成功处理
+```javascript
+const handleSuccessfulConnection = (tile1, tile2, path) => {
+  // 显示连接路径
+  setShowPath(path);
+  
+  // 计算得分（基于路径复杂度）
+  const score = calculateScore(path);
+  
+  // 播放消除动画
+  animateRemoval([tile1, tile2]);
+  
+  // 更新棋盘
+  setTimeout(() => {
+    removeTiles([tile1, tile2]);
+    applyGravityEffect();
+    
+    // 检查游戏结束条件
+    checkGameEnd();
+  }, 300);
+};
 ```
 
 ## 动画系统
 
-### 瓦片动画类型
-- **选择动画**：瓦片被选中时的高亮效果
-- **连接动画**：显示连接路径的线条动画
-- **消除动画**：瓦片消失的缩放/淡出效果
-- **重力动画**：瓦片移动到新位置的平移动画
-- **道具动画**：使用道具时的特效动画
-
-### 动画实现
+### 瓦片动画
 ```javascript
-// 使用 react-native-reanimated
+// 选择动画
 const tileScale = useSharedValue(1);
-const tileOpacity = useSharedValue(1);
-
-const animatedStyle = useAnimatedStyle(() => ({
+const selectedStyle = useAnimatedStyle(() => ({
   transform: [{ scale: tileScale.value }],
-  opacity: tileOpacity.value,
 }));
 
-// 瓦片消除动画
+// 消除动画
 const removeTileAnimation = () => {
-  tileScale.value = withTiming(0, { duration: 300 });
-  tileOpacity.value = withTiming(0, { duration: 300 });
+  tileScale.value = withSequence(
+    withTiming(1.2, { duration: 150 }),
+    withTiming(0, { duration: 200 })
+  );
 };
 ```
 
-## 道具系统实现
-
-### 道具功能
+### 路径动画
 ```javascript
-const toolHandlers = {
-  hint: () => {
-    // 查找可连接的瓦片对
+const PathOverlay = ({ path }) => {
+  const pathOpacity = useSharedValue(0);
+  
+  useEffect(() => {
+    pathOpacity.value = withTiming(1, { duration: 200 });
+  }, [path]);
+  
+  return (
+    <Animated.View style={[styles.pathOverlay, { opacity: pathOpacity }]}>
+      {/* 绘制连接线 */}
+    </Animated.View>
+  );
+};
+```
+
+## 道具实现
+
+### 提示工具
+```javascript
+const useHint = () => {
+  if (inventory.hint > 0) {
     const hintPair = findConnectablePair(board);
     if (hintPair) {
-      highlightTiles(hintPair);
+      highlightTiles(hintPair, 2000); // 高亮2秒
       useTool('hint');
     }
-  },
-  
-  bomb: () => {
-    // 随机移除一对可连接瓦片
+  }
+};
+```
+
+### 炸弹工具
+```javascript
+const useBomb = () => {
+  if (inventory.bomb > 0) {
     const randomPair = findRandomConnectablePair(board);
     if (randomPair) {
-      removeTilesWithAnimation(randomPair);
+      animateExplosion(randomPair);
+      removeTiles(randomPair);
       useTool('bomb');
     }
-  },
-  
-  shuffle: () => {
-    // 重新排列剩余瓦片
-    const newBoard = shuffleBoard(board);
-    setBoardWithAnimation(newBoard);
+  }
+};
+```
+
+### 洗牌工具
+```javascript
+const useShuffle = () => {
+  if (inventory.shuffle > 0) {
+    const newBoard = shuffleRemainingTiles(board);
+    animateShuffle(newBoard);
     useTool('shuffle');
   }
 };
@@ -208,79 +258,159 @@ const toolHandlers = {
 
 ## 性能优化
 
-### 优化策略
-1. **虚拟化渲染**：大棋盘使用 FlatList 虚拟化
-2. **动画优化**：使用 `runOnUI` 在UI线程执行动画
-3. **状态缓存**：缓存路径查找结果避免重复计算
-4. **内存管理**：及时清理动画引用和定时器
-
-### 代码示例
+### 1. 渲染优化
 ```javascript
-// 使用 useMemo 缓存计算结果
-const connectablePairs = useMemo(() => {
-  return findAllConnectablePairs(board);
-}, [board]);
+// 使用 React.memo 避免不必要的重渲染
+const Tile = React.memo(({ tile, isSelected, onPress }) => {
+  return (
+    <TouchableOpacity onPress={onPress}>
+      <Text>{tile}</Text>
+    </TouchableOpacity>
+  );
+});
 
-// 使用 useCallback 避免重复创建函数
+// 使用 useCallback 缓存事件处理函数
 const handleTilePress = useCallback((row, col) => {
-  // 处理瓦片点击
+  // 处理逻辑
 }, [selectedTiles, board]);
+```
+
+### 2. 算法优化
+```javascript
+// 缓存路径查找结果
+const pathCache = useMemo(() => new Map(), [board]);
+
+const findPathWithCache = (start, end) => {
+  const key = `${start.row},${start.col}-${end.row},${end.col}`;
+  if (pathCache.has(key)) {
+    return pathCache.get(key);
+  }
+  
+  const path = findPath(start, end);
+  pathCache.set(key, path);
+  return path;
+};
 ```
 
 ## 错误处理
 
-### 异常情况处理
-- **无效路径**：提示用户选择其他瓦片
-- **无可连接对**：自动触发洗牌或提示使用道具
-- **时间耗尽**：显示游戏失败界面
-- **心数耗尽**：显示重新开始选项
+### 游戏状态异常
+```javascript
+const validateGameState = () => {
+  // 检查棋盘完整性
+  if (!board || board.length === 0) {
+    console.error('Invalid board state');
+    return false;
+  }
+  
+  // 检查是否还有可连接的对
+  const connectablePairs = findAllConnectablePairs(board);
+  if (connectablePairs.length === 0 && !isBoardEmpty(board)) {
+    // 触发自动洗牌或游戏结束
+    handleDeadlock();
+  }
+  
+  return true;
+};
+```
 
-## 测试要点
+### 边界情况处理
+```javascript
+const handleEdgeCases = () => {
+  // 时间耗尽
+  if (timeRemaining <= 0) {
+    handleGameOver('timeout');
+  }
+  
+  // 心数耗尽
+  if (heartsRemaining <= 0) {
+    handleGameOver('no_hearts');
+  }
+  
+  // 棋盘清空
+  if (isBoardEmpty(board)) {
+    handleLevelComplete();
+  }
+};
+```
 
-### 功能测试
-- [ ] 瓦片连接逻辑正确性
-- [ ] 路径查找算法准确性
+## 测试策略
+
+### 单元测试
+- [ ] 路径查找算法正确性
 - [ ] 重力系统各模式表现
+- [ ] 得分计算准确性
 - [ ] 道具功能正常工作
-- [ ] 动画流畅度和性能
 
-### 边界测试
-- [ ] 空棋盘处理
-- [ ] 单个瓦片剩余
-- [ ] 极限时间压力
-- [ ] 道具库存为0的情况
+### 集成测试
+- [ ] 完整游戏流程
+- [ ] 状态同步正确性
+- [ ] 动画性能表现
+- [ ] 错误恢复机制
+
+### 用户测试
+- [ ] 操作响应性
+- [ ] 视觉反馈清晰度
+- [ ] 学习曲线合理性
+- [ ] 长时间游戏稳定性
 
 ## 扩展功能
 
-### 未来可添加功能
-- **多人对战模式**
-- **自定义瓦片主题**
-- **关卡编辑器**
-- **回放系统**
-- **成就系统**
+### 计划中的功能
+- **多人对战模式**：实时对战系统
+- **自定义主题**：瓦片和背景主题
+- **关卡编辑器**：用户自制关卡
+- **回放系统**：游戏过程录制回放
+- **成就系统**：里程碑和徽章
+
+### 技术改进
+- **AI提示系统**：智能难度调节
+- **云端存档**：跨设备数据同步
+- **性能监控**：实时性能分析
+- **A/B测试**：功能效果验证
 
 ## 依赖关系
 
-### 外部依赖
-- `react-native-reanimated`: 动画系统
-- `react-native-gesture-handler`: 手势处理
-- `@expo/vector-icons`: 图标组件
+### 核心依赖
+```javascript
+import { useGameStore } from '../store/gameStore';
+import SparkAnimation from '../components/SparkAnimation';
+import BambooAnimation from '../components/BambooAnimation';
+import { MaterialIcons } from '@expo/vector-icons';
+```
 
-### 内部依赖
-- `../store/gameStore`: 游戏状态管理
-- `../components/SparkAnimation`: 火花动画组件
-- `../components/BambooAnimation`: 竹子动画组件
+### 动画依赖
+```javascript
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+} from 'react-native-reanimated';
+```
 
-## 维护说明
+## 维护指南
 
 ### 代码规范
-- 使用 TypeScript 类型注解
+- 使用 TypeScript 进行类型检查
 - 遵循 React Hooks 最佳实践
-- 保持组件单一职责原则
-- 添加详细的注释说明
+- 保持函数单一职责
+- 添加详细的 JSDoc 注释
 
-### 调试技巧
-- 使用 `console.log` 跟踪游戏状态
-- 利用 React DevTools 检查组件状态
-- 使用 Flipper 调试动画性能
-- 添加开发模式下的调试面板
+### 调试工具
+- React DevTools：组件状态检查
+- Flipper：网络和性能调试
+- Console.log：游戏状态跟踪
+- 开发模式调试面板
+
+### 版本控制
+- 功能分支开发
+- 代码审查流程
+- 自动化测试集成
+- 发布版本标记
+
+---
+
+**最后更新：** 2024年1月
+**维护者：** Link Game Development Team
+**版本：** 1.0.0

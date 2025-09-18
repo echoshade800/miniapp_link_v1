@@ -11,7 +11,8 @@ import {
   TouchableOpacity, 
   SafeAreaView, 
   Alert,
-  Image
+  Image,
+  ScrollView
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -27,7 +28,7 @@ export default function Shop() {
       id: 'hint',
       name: 'Hint',
       description: 'Highlight a pair of connectable tiles',
-      imageUrl: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/lighttab.png',
+      imageUrl: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/lighttab.png',
       price: GAME_CONSTANTS.TOOL_PRICES.hint,
       color: '#FFC107',
     },
@@ -35,7 +36,7 @@ export default function Shop() {
       id: 'bomb',
       name: 'Bomb',
       description: 'Remove a random connectable pair',
-      imageUrl: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/boomtab.png',
+      imageUrl: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/boomtab.png',
       price: GAME_CONSTANTS.TOOL_PRICES.bomb,
       color: '#FF5722',
     },
@@ -43,7 +44,7 @@ export default function Shop() {
       id: 'shuffle',
       name: 'Shuffle',
       description: 'Rearrange remaining tiles',
-      imageUrl: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/washtab.png',
+      imageUrl: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/washtab.png',
       price: GAME_CONSTANTS.TOOL_PRICES.shuffle,
       color: '#9C27B0',
     },
@@ -63,9 +64,7 @@ export default function Shop() {
     
     try {
       const success = await purchaseTool(tool.id);
-      if (success) {
-        Alert.alert('Purchase Successful!', `You have purchased a ${tool.name} tool!`);
-      } else {
+      if (!success) {
         Alert.alert('Purchase Failed', 'Something went wrong, please try again.');
       }
     } catch (error) {
@@ -133,27 +132,33 @@ export default function Shop() {
         </View>
       </View>
 
-      {/* Description */}
-      <View style={styles.description}>
-        <Text style={styles.descriptionText}>
-          Use bamboo to purchase tools and get help in difficult levels!
-        </Text>
-      </View>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Description */}
+        <View style={styles.description}>
+          <Text style={styles.descriptionText}>
+            Use bamboo to purchase tools and get help in difficult levels!
+          </Text>
+        </View>
 
-      {/* Tools List */}
-      <View style={styles.toolsGrid}>
-        {tools.map(renderToolCard)}
-      </View>
+        {/* Tools List */}
+        <View style={styles.toolsGrid}>
+          {tools.map(renderToolCard)}
+        </View>
 
-      {/* Tips */}
-      <View style={styles.tips}>
-        <Text style={styles.tipsTitle}>💡 Tips</Text>
-        <Text style={styles.tipsText}>
-          • Earn bamboo by completing levels{'\n'}
-          • Tools don't consume time or hearts{'\n'}
-          • Stock up on tools before attempting difficult levels!
-        </Text>
-      </View>
+        {/* Tips */}
+        <View style={styles.tips}>
+          <Text style={styles.tipsTitle}>💡 Tips</Text>
+          <Text style={styles.tipsText}>
+            • Earn bamboo by completing levels{'\n'}
+            • Tools don't consume time or hearts{'\n'}
+            • Stock up on tools before attempting difficult levels!
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -162,6 +167,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F0F8F0',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   header: {
     flexDirection: 'row',
