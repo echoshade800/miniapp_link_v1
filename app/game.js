@@ -1423,47 +1423,42 @@ export default function Game() {
             />
             <View style={styles.toolBadge}>
               <Text style={styles.toolCount}>{inventory.hint}</Text>
-            </View>
-          </TouchableOpacity>
+        <View style={styles.settingsSection}>
+          <Text style={styles.settingsTitle}>Settings</Text>
           
-          <TouchableOpacity
-            style={[styles.toolButton, inventory.shuffle === 0 && styles.toolButtonDisabled]}
-            onPress={() => handleUseTool('shuffle')}
-            disabled={inventory.shuffle === 0}
-          >
-            <Image 
-              source={{ uri: 'https://bvluteuqlybyzwtpoegb.supabase.co/storage/v1/object/public/photo/washtab.png' }}
-              style={styles.toolIconImage}
+          <View style={styles.settingRow}>
+            <MaterialIcons name="music-note" size={20} color="#666" />
+            <Text style={styles.settingLabel}>Background Music</Text>
+            <Switch
+              value={settings.musicOn}
+              onValueChange={(value) => updateSettings({ musicOn: value })}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor="#FFF"
             />
-            <View style={styles.toolBadge}>
-              <Text style={styles.toolCount}>{inventory.shuffle}</Text>
-            </View>
-          </TouchableOpacity>
+          </View>
+          
+          <View style={styles.settingRow}>
+            <MaterialIcons name="volume-up" size={20} color="#666" />
+            <Text style={styles.settingLabel}>Sound Effects</Text>
+            <Switch
+              value={settings.sfxOn}
+              onValueChange={(value) => updateSettings({ sfxOn: value })}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor="#FFF"
+            />
+          </View>
+          
+          <View style={styles.settingRow}>
+            <MaterialIcons name="vibration" size={20} color="#666" />
+            <Text style={styles.settingLabel}>Vibration Feedback</Text>
+            <Switch
+              value={settings.hapticsOn}
+              onValueChange={(value) => updateSettings({ hapticsOn: value })}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor="#FFF"
+            />
+          </View>
         </View>
-      </ImageBackground>
-
-      {/* 竹子飞行动画 */}
-      {bambooAnimations.map((animation) => (
-        <BambooAnimation
-          key={animation.id}
-          bambooCount={animation.bambooCount}
-          startPositions={animation.startPositions}
-          endPosition={animation.endPosition}
-          onAnimationComplete={() => handleBambooAnimationComplete(animation.id)}
-        />
-      ))}
-
-      {/* 火花飞行动画 */}
-      {sparkAnimations.map((animation) => (
-        <SparkAnimation
-          key={animation.id}
-          sparkCount={animation.sparkCount}
-          startPosition={animation.startPosition}
-          targetPositions={animation.targetPositions}
-          onAnimationComplete={() => handleSparkAnimationComplete(animation.id)}
-        />
-      ))}
-
       {renderModal()}
     </SafeAreaView>
   );
