@@ -32,9 +32,9 @@ export const GameUtils = {
     const layout = GameUtils.getLevelLayout(level);
     const kinds = GameUtils.getLevelKinds(level);
     
-    const Tpp = Math.max(2.8, 5.2 - 0.06 * Math.floor((level - 1) / 3));
+    const Tpp = Math.max(1.8, 3.8 - 0.08 * Math.floor((level - 1) / 2));
     const layoutFactor = GAME_CONSTANTS.LAYOUT_FACTORS[layout];
-    const kindFactor = 1 + 0.015 * (kinds - 3);
+    const kindFactor = 1 + 0.025 * (kinds - 3);
     
     return Math.ceil(pairs * Tpp * layoutFactor * kindFactor);
   },
