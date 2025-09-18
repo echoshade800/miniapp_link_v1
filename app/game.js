@@ -1347,6 +1347,7 @@ export default function Game() {
           </TouchableOpacity>
         </View>
 
+    </View>
         {/* Progress Section */}
         <View style={styles.progressSection}>
           <View style={styles.progressContainer}>
