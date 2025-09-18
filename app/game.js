@@ -1605,6 +1605,48 @@ export default function Game() {
             <View style={styles.toolBadge}>
               <Text style={styles.toolCount}>{inventory.shuffle}</Text>
             </View>
+          {/* Game Settings */}
+          <View style={styles.settingsSection}>
+            <View style={styles.settingItem}>
+              <View style={styles.settingInfo}>
+                <MaterialIcons name="music-note" size={20} color="#666" />
+                <Text style={styles.settingLabel}>Background Music</Text>
+              </View>
+              <Switch
+                value={settings.musicOn}
+                onValueChange={(value) => updateSettings({ musicOn: value })}
+                trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+                thumbColor={settings.musicOn ? '#FFF' : '#FFF'}
+              />
+            </View>
+            
+            <View style={styles.settingItem}>
+              <View style={styles.settingInfo}>
+                <MaterialIcons name="volume-up" size={20} color="#666" />
+                <Text style={styles.settingLabel}>Sound Effects</Text>
+              </View>
+              <Switch
+                value={settings.sfxOn}
+                onValueChange={(value) => updateSettings({ sfxOn: value })}
+                trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+                thumbColor={settings.sfxOn ? '#FFF' : '#FFF'}
+              />
+            </View>
+            
+            <View style={styles.settingItem}>
+              <View style={styles.settingInfo}>
+                <MaterialIcons name="vibration" size={20} color="#666" />
+                <Text style={styles.settingLabel}>Vibration Feedback</Text>
+              </View>
+              <Switch
+                value={settings.hapticsOn}
+                onValueChange={(value) => updateSettings({ hapticsOn: value })}
+                trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+                thumbColor={settings.hapticsOn ? '#FFF' : '#FFF'}
+              />
+            </View>
+          </View>
+          
           </TouchableOpacity>
         </View>
       </ImageBackground>
@@ -1621,14 +1663,6 @@ export default function Game() {
       ))}
 
       {/* 火花飞行动画 */}
-      {sparkAnimations.map((animation) => (
-        <SparkAnimation
-          key={animation.id}
-          sparkCount={animation.sparkCount}
-          startPosition={animation.startPosition}
-          targetPositions={animation.targetPositions}
-          onAnimationComplete={() => handleSparkAnimationComplete(animation.id)}
-        />
       ))}
 
       {renderModal()}
