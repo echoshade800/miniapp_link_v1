@@ -46,12 +46,12 @@ export const GameUtils = {
 
   // Get level size (increases +4 every 12 levels, max 80)
   getLevelSize: (level) => {
-    if (level === 1) {
-      return 20; // 第1关：20个瓦片 (4×5)
-    } else if (level <= 6) {
-      return 60; // 第2-6关：60个瓦片 (6×10)
+    if (level <= 6) {
+      return 20; // 1-6关：20个瓦片 (4×5)
+    } else if (level <= 12) {
+      return 60; // 7-12关：60个瓦片 (6×10)
     } else {
-      return 80; // 第7关及以后：80个瓦片 (8×10)
+      return 80; // 13关及以后：80个瓦片 (8×10)
     }
   },
 
