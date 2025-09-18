@@ -15,8 +15,7 @@ import {
   Modal,
   Vibration,
   ImageBackground,
-  Image,
-  Switch
+  Image
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -34,8 +33,7 @@ export default function Game() {
     settings,
     useTool,
     completeLevel,
-    startLevel,
-    updateSettings
+    startLevel
   } = useGameStore();
 
   const [selectedTiles, setSelectedTiles] = useState([]);
@@ -1609,48 +1607,6 @@ export default function Game() {
             </View>
           </TouchableOpacity>
         </View>
-
-        {/* Game Settings */}
-        <View style={styles.settingsSection}>
-          <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <MaterialIcons name="music-note" size={20} color="#666" />
-              <Text style={styles.settingLabel}>Background Music</Text>
-            </View>
-            <Switch
-              value={settings.musicOn}
-              onValueChange={(value) => updateSettings({ musicOn: value })}
-              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
-              thumbColor={settings.musicOn ? '#FFF' : '#FFF'}
-            />
-          </View>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <MaterialIcons name="volume-up" size={20} color="#666" />
-              <Text style={styles.settingLabel}>Sound Effects</Text>
-            </View>
-            <Switch
-              value={settings.sfxOn}
-              onValueChange={(value) => updateSettings({ sfxOn: value })}
-              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
-              thumbColor={settings.sfxOn ? '#FFF' : '#FFF'}
-            />
-          </View>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <MaterialIcons name="vibration" size={20} color="#666" />
-              <Text style={styles.settingLabel}>Vibration Feedback</Text>
-            </View>
-            <Switch
-              value={settings.hapticsOn}
-              onValueChange={(value) => updateSettings({ hapticsOn: value })}
-              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
-              thumbColor={settings.hapticsOn ? '#FFF' : '#FFF'}
-            />
-          </View>
-        </View>
       </ImageBackground>
 
       {/* 竹子飞行动画 */}
@@ -1891,35 +1847,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 12,
     fontWeight: 'bold',
-  },
-  settingsSection: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    margin: 20,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  settingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  settingLabel: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 12,
   },
   modalOverlay: {
     flex: 1,
