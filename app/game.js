@@ -15,7 +15,8 @@ import {
   Modal,
   Vibration,
   ImageBackground,
-  Image
+  Image,
+  Switch
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -33,7 +34,8 @@ export default function Game() {
     settings,
     useTool,
     completeLevel,
-    startLevel
+    startLevel,
+    updateSettings
   } = useGameStore();
 
   const [selectedTiles, setSelectedTiles] = useState([]);
@@ -1060,7 +1062,7 @@ export default function Game() {
         const currentSize = GameUtils.getLevelSize(currentLevel);
         const removeCount = getBombRemoveCount(currentSize);
 
-        // 在消除前尝试选择“保证消除后可解”的目标集合
+        // 在消除前尝试选择"保证消除后可解"的目标集合
         const tilesToRemove = selectBombTargetsEnsuringSolvable(board, removeCount) || selectRandomTilesToRemove(board, removeCount);
 
         if (tilesToRemove.length > 0) {
@@ -1139,7 +1141,7 @@ export default function Game() {
     }
   };
 
-  // 在移除前通过模拟重力来验证“消除后可解”，尽可能选择安全目标
+  // 在移除前通过模拟重力来验证"消除后可解"，尽可能选择安全目标
   const selectBombTargetsEnsuringSolvable = (currentBoard, removeCount, maxAttempts = 120) => {
     // 收集所有非空瓦片
     const tiles = [];
@@ -1605,49 +1607,49 @@ export default function Game() {
             <View style={styles.toolBadge}>
               <Text style={styles.toolCount}>{inventory.shuffle}</Text>
             </View>
-          {/* Game Settings */}
-          <View style={styles.settingsSection}>
-            <View style={styles.settingItem}>
-              <View style={styles.settingInfo}>
-                <MaterialIcons name="music-note" size={20} color="#666" />
-                <Text style={styles.settingLabel}>Background Music</Text>
-              </View>
-              <Switch
-                value={settings.musicOn}
-                onValueChange={(value) => updateSettings({ musicOn: value })}
-                trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
-                thumbColor={settings.musicOn ? '#FFF' : '#FFF'}
-              />
+          </TouchableOpacity>
+        </View>
+
+        {/* Game Settings */}
+        <View style={styles.settingsSection}>
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <MaterialIcons name="music-note" size={20} color="#666" />
+              <Text style={styles.settingLabel}>Background Music</Text>
             </View>
-            
-            <View style={styles.settingItem}>
-              <View style={styles.settingInfo}>
-                <MaterialIcons name="volume-up" size={20} color="#666" />
-                <Text style={styles.settingLabel}>Sound Effects</Text>
-              </View>
-              <Switch
-                value={settings.sfxOn}
-                onValueChange={(value) => updateSettings({ sfxOn: value })}
-                trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
-                thumbColor={settings.sfxOn ? '#FFF' : '#FFF'}
-              />
-            </View>
-            
-            <View style={styles.settingItem}>
-              <View style={styles.settingInfo}>
-                <MaterialIcons name="vibration" size={20} color="#666" />
-                <Text style={styles.settingLabel}>Vibration Feedback</Text>
-              </View>
-              <Switch
-                value={settings.hapticsOn}
-                onValueChange={(value) => updateSettings({ hapticsOn: value })}
-                trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
-                thumbColor={settings.hapticsOn ? '#FFF' : '#FFF'}
-              />
-            </View>
+            <Switch
+              value={settings.musicOn}
+              onValueChange={(value) => updateSettings({ musicOn: value })}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor={settings.musicOn ? '#FFF' : '#FFF'}
+            />
           </View>
           
-          </TouchableOpacity>
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <MaterialIcons name="volume-up" size={20} color="#666" />
+              <Text style={styles.settingLabel}>Sound Effects</Text>
+            </View>
+            <Switch
+              value={settings.sfxOn}
+              onValueChange={(value) => updateSettings({ sfxOn: value })}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor={settings.sfxOn ? '#FFF' : '#FFF'}
+            />
+          </View>
+          
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <MaterialIcons name="vibration" size={20} color="#666" />
+              <Text style={styles.settingLabel}>Vibration Feedback</Text>
+            </View>
+            <Switch
+              value={settings.hapticsOn}
+              onValueChange={(value) => updateSettings({ hapticsOn: value })}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor={settings.hapticsOn ? '#FFF' : '#FFF'}
+            />
+          </View>
         </View>
       </ImageBackground>
 
@@ -1663,6 +1665,14 @@ export default function Game() {
       ))}
 
       {/* 火花飞行动画 */}
+      {sparkAnimations.map((animation) => (
+        <SparkAnimation
+          key={animation.id}
+          sparkCount={animation.sparkCount}
+          startPosition={animation.startPosition}
+          targetPositions={animation.targetPositions}
+          onAnimationComplete={() => handleSparkAnimationComplete(animation.id)}
+        />
       ))}
 
       {renderModal()}
@@ -1881,6 +1891,35 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  settingsSection: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    margin: 20,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  settingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingLabel: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 12,
   },
   modalOverlay: {
     flex: 1,
