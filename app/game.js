@@ -1459,6 +1459,7 @@ export default function Game() {
           </View>
         </View>
       {renderModal()}
+    </TouchableOpacity>
     </View>
     </SafeAreaView>
   );
