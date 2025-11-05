@@ -1556,7 +1556,8 @@ export default function Game() {
       return { tileSize: 34, emojiFontSize: 26, margin: 1.5, boardPadding: 10 };
     } else {
       // 8×10 棋盘，使用较小尺寸
-      return { tileSize: 28, emojiFontSize: 18, margin: 1, boardPadding: 8 };
+      // 计算: (32 + 2*1) * 10 + 2*10 = 340 + 20 = 360px 宽度
+      return { tileSize: 32, emojiFontSize: 22, margin: 1, boardPadding: 10 };
     }
   };
 
