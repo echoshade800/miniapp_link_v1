@@ -1552,7 +1552,8 @@ export default function Game() {
       return { tileSize: 48, emojiFontSize: 32, margin: 2, boardPadding: 12 };
     } else if (level <= 12) {
       // 6×10 棋盘，使用中等尺寸
-      return { tileSize: 40, emojiFontSize: 36, margin: 1.5, boardPadding: 11 };
+      // 计算: (32 + 2*1.5) * 10 + 2*10 = 350 + 20 = 370px 宽度，适配大多数手机
+      return { tileSize: 32, emojiFontSize: 24, margin: 1.5, boardPadding: 10 };
     } else {
       // 8×10 棋盘，使用较小尺寸
       return { tileSize: 28, emojiFontSize: 18, margin: 1, boardPadding: 8 };
