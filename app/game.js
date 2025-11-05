@@ -2013,6 +2013,7 @@ export default function Game() {
           endPosition={line.endPosition}
           pathPoints={line.pathPoints}
           onAnimationComplete={line.onComplete}
+          tileSize={tileConfig.tileSize}
         />
       ))}
 

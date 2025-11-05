@@ -11,12 +11,13 @@ import Animated, {
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-const ConnectionLine = ({ 
-  startPosition, 
-  endPosition, 
-  pathPoints, 
+const ConnectionLine = ({
+  startPosition,
+  endPosition,
+  pathPoints,
   onAnimationComplete,
-  duration = 120 
+  duration = 120,
+  tileSize = 32
 }) => {
   const strokeDashoffset = useSharedValue(1000);
 
@@ -57,6 +58,9 @@ const ConnectionLine = ({
     strokeDashoffset: strokeDashoffset.value,
   }));
 
+  // 根据瓦片尺寸动态计算连接线宽度
+  const strokeWidth = Math.max(5, Math.round(tileSize * 0.15));
+
   return (
     <View style={styles.container}>
       <Svg style={StyleSheet.absoluteFillObject}>
@@ -66,12 +70,12 @@ const ConnectionLine = ({
             <Stop offset="100%" stopColor="#92FE9D" stopOpacity="1" />
           </LinearGradient>
         </Defs>
-        
+
         {/* Main connection line */}
         <AnimatedPath
           d={generatePath()}
           stroke="url(#blueGreenGradient)"
-          strokeWidth="5"
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
