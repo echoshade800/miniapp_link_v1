@@ -1956,10 +1956,10 @@ export default function Game() {
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${Math.min(progressPercentage, 100)}%` }]} />
             </View>
+            <Text style={styles.progressText}>
+              {currentLevel > maxLevel ? `+${currentLevelBamboo}` : 'Replay'}
+            </Text>
           </View>
-          <Text style={styles.progressText}>
-            {currentLevel > maxLevel ? `+${currentLevelBamboo}` : 'Replay'}
-          </Text>
         </View>
 
         {/* Game Stats */}
@@ -2138,7 +2138,6 @@ const styles = StyleSheet.create({
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
   progressIcon: {
     marginRight: 10,
@@ -2162,6 +2161,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#2E7D32',
+    marginLeft: 10,
   },
   statsRow: {
     flexDirection: 'row',
