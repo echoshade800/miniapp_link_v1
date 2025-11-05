@@ -1557,7 +1557,7 @@ export default function Game() {
     } else {
       // 8×10 棋盘，使用较小尺寸
       // 计算: (34 + 2*1) * 10 + 2*10 = 360 + 20 = 380px 宽度
-      return { tileSize: 34, emojiFontSize: 26, margin: 1, boardPadding: 10 };
+      return { tileSize: 34, emojiFontSize: 30, margin: 1, boardPadding: 10 };
     }
   };
 
