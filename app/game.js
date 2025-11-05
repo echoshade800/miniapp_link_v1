@@ -2467,7 +2467,7 @@ const styles = StyleSheet.create({
   },
   errorMessageContainer: {
     position: 'absolute',
-    top: 245, // 位于统计行下方
+    top: 270, // 位于统计行下方
     left: 0,
     right: 0,
     alignItems: 'center',
