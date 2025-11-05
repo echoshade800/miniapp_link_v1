@@ -1921,17 +1921,26 @@ export default function Game() {
       >
         {/* Header */}
         <View style={styles.header} onLayout={handleLayoutMeasure('header')}>
-          <TouchableOpacity 
-            style={styles.pauseButton} 
+          <TouchableOpacity
+            style={styles.pauseButton}
             onPress={() => setShowModal('pause')}
           >
             <MaterialIcons name="pause" size={24} color="#5A8F7B" />
           </TouchableOpacity>
-          
-          <Text style={styles.levelTitle}>Level {currentLevel}</Text>
-          
-          <TouchableOpacity 
-            style={styles.homeButton} 
+
+          <View style={styles.headerCenter}>
+            <Text style={styles.levelTitle}>Level {currentLevel}</Text>
+            {gravityModeInfo.arrow && (
+              <View style={styles.gravityBadge}>
+                <Text style={styles.gravityBadgeText}>
+                  Gravity: {GameUtils.getLevelLayout(currentLevel)} {gravityModeInfo.arrow === '←' ? '(Tiles slide ←)' : gravityModeInfo.arrow === '↓' ? '(Tiles fall ↓)' : gravityModeInfo.arrow === '↔' ? '(← →)' : `(${gravityModeInfo.arrow})`}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.homeButton}
             onPress={() => setShowModal('home')}
           >
             <MaterialIcons name="home" size={24} color="#5A8F7B" />
@@ -1941,11 +1950,6 @@ export default function Game() {
         {/* Progress Section */}
         <View style={styles.progressSection} onLayout={handleLayoutMeasure('progress')}>
           <View style={styles.progressContainer}>
-            {gravityModeInfo.arrow && (
-              <View style={styles.gravityArrow}>
-                <Text style={styles.gravityArrowText}>{gravityModeInfo.arrow}</Text>
-              </View>
-            )}
             <View style={styles.progressIcon}>
               <Text style={styles.bambooIcon}>🎋</Text>
             </View>
@@ -2100,10 +2104,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 20,
   },
+  headerCenter: {
+    alignItems: 'center',
+    gap: 4,
+  },
   levelTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#2E7D32',
+  },
+  gravityBadge: {
+    backgroundColor: 'rgba(230, 240, 235, 0.95)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  gravityBadgeText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#2E7D32',
+    letterSpacing: 0.3,
   },
   progressSection: {
     alignItems: 'center',
@@ -2114,23 +2139,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-  },
-  gravityArrow: {
-    marginRight: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  gravityArrowText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E7D32',
   },
   progressIcon: {
     marginRight: 10,
