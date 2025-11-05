@@ -2093,6 +2093,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
+    marginTop: 100,
   },
   pauseButton: {
     padding: 8,
@@ -2466,7 +2467,7 @@ const styles = StyleSheet.create({
   },
   errorMessageContainer: {
     position: 'absolute',
-    top: 220, // 位于统计行下方
+    top: 320, // 位于统计行下方 (原220 + 100)
     left: 0,
     right: 0,
     alignItems: 'center',
