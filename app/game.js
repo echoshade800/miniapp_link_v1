@@ -1512,20 +1512,57 @@ export default function Game() {
   };
 
 
-  // 根据关卡动态计算瓦片尺寸
+  // 根据屏幕尺寸和关卡动态计算瓦片尺寸
   const getTileSizeForLevel = (level) => {
-    if (level <= 6) {
-      // 4×5 棋盘，使用大尺寸
-      return { tileSize: 48, emojiFontSize: 32, margin: 2, boardPadding: 12 };
-    } else if (level <= 12) {
-      // 6×10 棋盘，使用中等尺寸
-      // 计算: (34 + 2*1.5) * 10 + 2*10 = 370 + 20 = 390px 宽度
-      return { tileSize: 34, emojiFontSize: 26, margin: 1.5, boardPadding: 10 };
-    } else {
-      // 8×10 棋盘，使用较小尺寸
-      // 计算: (34 + 2*1) * 10 + 2*10 = 360 + 20 = 380px 宽度
-      return { tileSize: 34, emojiFontSize: 27, margin: 1, boardPadding: 10 };
-    }
+    const { height: screenHeight, width: screenWidth } = Dimensions.get('window');
+
+    // 获取当前关卡的棋盘尺寸
+    const levelSize = GameUtils.getLevelSize(level);
+    const [rows, cols] = GameUtils.getBoardDimensions(levelSize);
+
+    // 计算UI元素占用的高度
+    const headerHeight = 64;
+    const progressHeight = 80;
+    const statsHeight = 50;
+    const errorHeight = errorMessage ? 60 : 0;
+    const toolsHeight = 120;
+    const safeAreaTop = 44;
+    const safeAreaBottom = 34;
+
+    // 计算可用空间
+    const availableHeight = screenHeight - safeAreaTop - safeAreaBottom - headerHeight - progressHeight - statsHeight - errorHeight - toolsHeight;
+    const availableWidth = screenWidth;
+
+    // 设置padding和margin的基准值
+    const boardContainerPaddingX = 15;
+    const boardPadding = 10;
+    const minMargin = 1;
+    const maxMargin = 2;
+
+    // 根据可用宽度计算最大瓦片尺寸
+    const maxWidthForTile = (availableWidth - 2 * boardContainerPaddingX - 2 * boardPadding) / cols - 2 * maxMargin;
+
+    // 根据可用高度计算最大瓦片尺寸
+    const maxHeightForTile = (availableHeight - 2 * boardPadding) / rows - 2 * maxMargin;
+
+    // 取较小值确保不溢出
+    let tileSize = Math.floor(Math.min(maxWidthForTile, maxHeightForTile));
+
+    // 设置最小和最大瓦片尺寸
+    const minTileSize = 24;
+    const maxTileSize = 60;
+    tileSize = Math.max(minTileSize, Math.min(maxTileSize, tileSize));
+
+    // 根据瓦片尺寸动态计算其他参数
+    const margin = tileSize > 40 ? maxMargin : minMargin;
+    const emojiFontSize = Math.floor(tileSize * 0.65);
+
+    return {
+      tileSize,
+      emojiFontSize,
+      margin,
+      boardPadding
+    };
   };
 
   const tileConfig = getTileSizeForLevel(currentLevel);
