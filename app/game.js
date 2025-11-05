@@ -1545,28 +1545,55 @@ export default function Game() {
     }
   };
 
+  // 根据关卡动态计算瓦片尺寸
+  const getTileSizeForLevel = (level) => {
+    if (level <= 6) {
+      // 4×5 棋盘，使用大尺寸
+      return { tileSize: 48, emojiFontSize: 32, margin: 2, boardPadding: 12 };
+    } else if (level <= 12) {
+      // 6×10 棋盘，使用中等尺寸
+      return { tileSize: 32, emojiFontSize: 22, margin: 1.5, boardPadding: 10 };
+    } else {
+      // 8×10 棋盘，使用较小尺寸
+      return { tileSize: 28, emojiFontSize: 18, margin: 1, boardPadding: 8 };
+    }
+  };
+
+  const tileConfig = getTileSizeForLevel(currentLevel);
+
   const renderTile = (tile, row, col) => {
     const isSelected = selectedTiles.some(t => t.row === row && t.col === col);
     const isHinted = hintedTiles.some(t => t.row === row && t.col === col);
     const isBombTarget = bombTargetTiles.some(t => t.row === row && t.col === col);
     const isEmpty = !tile;
-    
+
+    const dynamicTileStyle = {
+      width: tileConfig.tileSize,
+      height: tileConfig.tileSize,
+      margin: tileConfig.margin,
+    };
+
+    const dynamicEmojiStyle = {
+      fontSize: tileConfig.emojiFontSize,
+    };
+
     if (isEmpty) {
-      return <View key={`${row}-${col}`} style={styles.emptyTile} />;
+      return <View key={`${row}-${col}`} style={[styles.emptyTile, dynamicTileStyle]} />;
     }
 
     return (
       <TouchableOpacity
         key={`${row}-${col}`}
         style={[
-          styles.tile, 
+          styles.tile,
+          dynamicTileStyle,
           isSelected && styles.selectedTile,
           isHinted && styles.hintedTile,
           isBombTarget && styles.bombTargetTile
         ]}
         onPress={() => handleTilePress(row, col)}
       >
-        <Text style={styles.tileEmoji}>{tile}</Text>
+        <Text style={[styles.tileEmoji, dynamicEmojiStyle]}>{tile}</Text>
       </TouchableOpacity>
     );
   };
@@ -1897,7 +1924,7 @@ export default function Game() {
 
         {/* Game Board */}
         <View style={styles.boardContainer}>
-          <View style={styles.board}>
+          <View style={[styles.board, { padding: tileConfig.boardPadding }]}>
             {board.map((row, rowIndex) => (
               <View key={rowIndex} style={styles.row}>
                 {row.map((tile, colIndex) => 
@@ -2106,7 +2133,6 @@ const styles = StyleSheet.create({
   },
   board: {
     backgroundColor: 'rgba(255,255,255,0.9)',
-    padding: 12,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -2118,10 +2144,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   tile: {
-    width: 48,
-    height: 48,
     backgroundColor: '#F5F5F5',
-    margin: 2,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -2151,12 +2174,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   emptyTile: {
-    width: 48,
-    height: 48,
-    margin: 2,
   },
   tileEmoji: {
-    fontSize: 32,
   },
   toolsContainer: {
     flexDirection: 'row',
