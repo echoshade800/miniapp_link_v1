@@ -18,8 +18,7 @@ import {
   Image,
   Switch,
   useWindowDimensions,
-  PixelRatio,
-  Platform
+  PixelRatio
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -1570,7 +1569,7 @@ export default function Game() {
     // margin比例系数（相对于tileSize）
     const marginRatio = 0.06;
     const minMargin = 1;
-    const maxMargin = 2.5;
+    const maxMargin = 4;
 
     // 推导tileSize：设 m = margin, t = tileSize
     // 宽度约束：cols * (t + 2m) = netWidth  =>  t = netWidth/cols - 2m
@@ -1603,25 +1602,12 @@ export default function Game() {
     tileSize = PixelRatio.roundToNearestPixel(tileSize);
 
     // 根据瓦片尺寸动态计算其他参数
-    // emoji字号：Android稍微降低比例，避免被裁切
-    let emojiSizeRatio;
-    if (tileSize <= 30) {
-      emojiSizeRatio = 0.88; // Android安全值
-    } else if (tileSize <= 40) {
-      emojiSizeRatio = 0.86;
-    } else {
-      emojiSizeRatio = 0.84;
-    }
-
-    let emojiFontSize = PixelRatio.roundToNearestPixel(tileSize * emojiSizeRatio);
-    // 关键：用格子高度当行高，给1px buffer
-    const lineHeight = Math.max(tileSize, Math.round(emojiFontSize) + 1);
+    const emojiFontSize = Math.round(tileSize * 0.68);
     const borderRadius = Math.round(tileSize * 0.15);
 
     return {
       tileSize,
       emojiFontSize,
-      lineHeight,
       margin,
       boardPadding,
       borderRadius,
@@ -1647,7 +1633,6 @@ export default function Game() {
 
     const dynamicEmojiStyle = {
       fontSize: tileConfig.emojiFontSize,
-      lineHeight: tileConfig.lineHeight,
     };
 
     if (isEmpty) {
@@ -1666,13 +1651,7 @@ export default function Game() {
         ]}
         onPress={() => handleTilePress(row, col)}
       >
-        <Text
-          style={[styles.tileEmoji, dynamicEmojiStyle]}
-          allowFontScaling={false}
-          numberOfLines={1}
-        >
-          {tile}
-        </Text>
+        <Text style={[styles.tileEmoji, dynamicEmojiStyle]}>{tile}</Text>
       </TouchableOpacity>
     );
   };
@@ -2228,7 +2207,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-    overflow: 'visible',
   },
   selectedTile: {
     backgroundColor: '#81C784',
@@ -2255,9 +2233,6 @@ const styles = StyleSheet.create({
   emptyTile: {
   },
   tileEmoji: {
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    includeFontPadding: false,
   },
   toolsContainer: {
     flexDirection: 'row',
