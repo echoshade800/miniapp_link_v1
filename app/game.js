@@ -4,20 +4,21 @@
  * Extension: Add animations, particle effects, sound integration, or multiplayer
  */
 
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
   Alert,
   Modal,
   Vibration,
   ImageBackground,
   Image,
   Switch,
-  Dimensions
+  useWindowDimensions,
+  PixelRatio
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -55,6 +56,28 @@ export default function Game() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(1); // 1 or 2
   const [errorMessage, setErrorMessage] = useState(null); // 错误提示信息
+
+  // 存储各UI区域的实际高度（通过onLayout获取）
+  const [uiHeights, setUiHeights] = useState({
+    header: 0,
+    progress: 0,
+    stats: 0,
+    error: 0,
+    tools: 0,
+    safeTop: 0,
+    safeBottom: 0
+  });
+
+  // onLayout回调函数
+  const handleLayoutMeasure = useCallback((key) => (event) => {
+    const { height } = event.nativeEvent.layout;
+    setUiHeights(prev => {
+      if (prev[key] !== height) {
+        return { ...prev, [key]: height };
+      }
+      return prev;
+    });
+  }, []);
 
   // 使用store中的状态，不使用本地状态
   const timeRemaining = gameState.timeRemaining;
@@ -1512,60 +1535,88 @@ export default function Game() {
   };
 
 
-  // 根据屏幕尺寸和关卡动态计算瓦片尺寸
-  const getTileSizeForLevel = (level) => {
-    const { height: screenHeight, width: screenWidth } = Dimensions.get('window');
+  // 使用useWindowDimensions响应屏幕变化
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
+  // 动态计算棋盘尺寸配置
+  const boardMetrics = useMemo(() => {
     // 获取当前关卡的棋盘尺寸
-    const levelSize = GameUtils.getLevelSize(level);
+    const levelSize = GameUtils.getLevelSize(currentLevel);
     const [rows, cols] = GameUtils.getBoardDimensions(levelSize);
 
-    // 计算UI元素占用的高度
-    const headerHeight = 64;
-    const progressHeight = 80;
-    const statsHeight = 50;
-    const errorHeight = errorMessage ? 60 : 0;
-    const toolsHeight = 120;
-    const safeAreaTop = 44;
-    const safeAreaBottom = 34;
+    // 计算可用空间（使用实际测量的高度，如果还没测量则用估计值）
+    const totalUIHeight = (
+      (uiHeights.header || 64) +
+      (uiHeights.progress || 80) +
+      (uiHeights.stats || 50) +
+      (errorMessage ? (uiHeights.error || 60) : 0) +
+      (uiHeights.tools || 120) +
+      (uiHeights.safeTop || 44) +
+      (uiHeights.safeBottom || 34)
+    );
 
-    // 计算可用空间
-    const availableHeight = screenHeight - safeAreaTop - safeAreaBottom - headerHeight - progressHeight - statsHeight - errorHeight - toolsHeight;
+    const availableHeight = screenHeight - totalUIHeight;
     const availableWidth = screenWidth;
 
-    // 设置padding和margin的基准值
+    // 设置padding
     const boardContainerPaddingX = 15;
     const boardPadding = 10;
+
+    // 计算可用于棋盘的净空间
+    const netWidth = availableWidth - 2 * boardContainerPaddingX - 2 * boardPadding;
+    const netHeight = availableHeight - 2 * boardPadding;
+
+    // margin比例系数（相对于tileSize）
+    const marginRatio = 0.06;
     const minMargin = 1;
-    const maxMargin = 2;
+    const maxMargin = 4;
 
-    // 根据可用宽度计算最大瓦片尺寸
-    const maxWidthForTile = (availableWidth - 2 * boardContainerPaddingX - 2 * boardPadding) / cols - 2 * maxMargin;
+    // 推导tileSize：设 m = margin, t = tileSize
+    // 宽度约束：cols * (t + 2m) = netWidth  =>  t = netWidth/cols - 2m
+    // 因为 m = clamp(t * marginRatio, minMargin, maxMargin)
+    // 为简化，先假设 m 在合理范围内，求出 t，再调整 m
 
-    // 根据可用高度计算最大瓦片尺寸
-    const maxHeightForTile = (availableHeight - 2 * boardPadding) / rows - 2 * maxMargin;
+    // 初步计算（假设margin=2）
+    let estimatedMargin = 2;
+    let tileSizeFromWidth = (netWidth / cols) - 2 * estimatedMargin;
+    let tileSizeFromHeight = (netHeight / rows) - 2 * estimatedMargin;
 
-    // 取较小值确保不溢出
-    let tileSize = Math.floor(Math.min(maxWidthForTile, maxHeightForTile));
+    // 取较小值
+    let tileSize = Math.min(tileSizeFromWidth, tileSizeFromHeight);
+
+    // 根据tileSize计算实际margin
+    let margin = Math.max(minMargin, Math.min(maxMargin, tileSize * marginRatio));
+    margin = Math.round(margin * 10) / 10; // 保留一位小数
+
+    // 用实际margin重新计算tileSize
+    tileSizeFromWidth = (netWidth / cols) - 2 * margin;
+    tileSizeFromHeight = (netHeight / rows) - 2 * margin;
+    tileSize = Math.min(tileSizeFromWidth, tileSizeFromHeight);
 
     // 设置最小和最大瓦片尺寸
     const minTileSize = 24;
     const maxTileSize = 60;
     tileSize = Math.max(minTileSize, Math.min(maxTileSize, tileSize));
 
+    // 使用PixelRatio.roundToNearestPixel避免模糊
+    tileSize = PixelRatio.roundToNearestPixel(tileSize);
+
     // 根据瓦片尺寸动态计算其他参数
-    const margin = tileSize > 40 ? maxMargin : minMargin;
-    const emojiFontSize = Math.floor(tileSize * 0.65);
+    const emojiFontSize = Math.round(tileSize * 0.68);
+    const borderRadius = Math.round(tileSize * 0.15);
 
     return {
       tileSize,
       emojiFontSize,
       margin,
-      boardPadding
+      boardPadding,
+      borderRadius,
+      rows,
+      cols
     };
-  };
+  }, [currentLevel, screenWidth, screenHeight, uiHeights, errorMessage]);
 
-  const tileConfig = getTileSizeForLevel(currentLevel);
+  const tileConfig = boardMetrics;
 
   const renderTile = (tile, row, col) => {
     const isSelected = selectedTiles.some(t => t.row === row && t.col === col);
@@ -1577,6 +1628,7 @@ export default function Game() {
       width: tileConfig.tileSize,
       height: tileConfig.tileSize,
       margin: tileConfig.margin,
+      borderRadius: tileConfig.borderRadius,
     };
 
     const dynamicEmojiStyle = {
@@ -1851,14 +1903,24 @@ export default function Game() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+      onLayout={(e) => {
+        const { y, height } = e.nativeEvent.layout;
+        setUiHeights(prev => ({
+          ...prev,
+          safeTop: y,
+          safeBottom: screenHeight - height - y
+        }));
+      }}
+    >
       <ImageBackground
         source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/gamebackground.png' }}
         style={styles.backgroundContainer}
         resizeMode="cover"
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={styles.header} onLayout={handleLayoutMeasure('header')}>
           <TouchableOpacity 
             style={styles.pauseButton} 
             onPress={() => setShowModal('pause')}
@@ -1877,7 +1939,7 @@ export default function Game() {
         </View>
 
         {/* Progress Section */}
-        <View style={styles.progressSection}>
+        <View style={styles.progressSection} onLayout={handleLayoutMeasure('progress')}>
           <View style={styles.progressContainer}>
             {gravityModeInfo.arrow && (
               <View style={styles.gravityArrow}>
@@ -1897,7 +1959,7 @@ export default function Game() {
         </View>
 
         {/* Game Stats */}
-        <View style={styles.statsRow}>
+        <View style={styles.statsRow} onLayout={handleLayoutMeasure('stats')}>
           <View style={styles.statItem}>
             <MaterialIcons name="timer" size={20} color="#FF8A65" />
             <Text style={styles.statText}>{formatTime(timeRemaining)}</Text>
@@ -1916,7 +1978,7 @@ export default function Game() {
 
         {/* Error Message */}
         {errorMessage && (
-          <View style={styles.errorMessageContainer}>
+          <View style={styles.errorMessageContainer} onLayout={handleLayoutMeasure('error')}>
             <LinearGradient
               colors={['#4A90E2', '#50C9C3']}
               start={{ x: 0, y: 0 }}
@@ -1942,7 +2004,7 @@ export default function Game() {
         </View>
 
         {/* Tools */}
-        <View style={styles.toolsContainer}>
+        <View style={styles.toolsContainer} onLayout={handleLayoutMeasure('tools')}>
           <TouchableOpacity
             style={[styles.toolButton, (inventory.bomb === 0 || timeRemaining <= 0) && styles.toolButtonDisabled]}
             onPress={() => handleUseTool('bomb')}
