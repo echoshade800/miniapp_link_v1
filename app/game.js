@@ -82,7 +82,7 @@ export default function Game() {
   const gravityModeInfo = GameUtils.getGravityModeInfo(currentLevel);
 
   // Emoji tile types for the game
-  const emojiTiles = ['🌸', '🍀', '🎯', '🏠', '🌞', '🎨', '🎵', '🍎', '🦋', '⭐', '🎪', '🌈', '🎭', '🎲', '🎸'];
+  const emojiTiles = ['🌸', '🍀', '🎯', '🏠', '🌞', '🎨', '🎵', '🍎', '🦋', '⭐', '🎪', '🌈', '🎭', '🎲', '🎸', '🐼', '🦊', '🐰', '🐸', '🦁'];
 
   // 检查棋盘是否可解（至少有一对可连接的瓦片）
   const isBoardSolvable = (board) => {
