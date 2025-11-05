@@ -27,7 +27,6 @@ import useGameStore, { GameUtils, GAME_CONSTANTS } from '../store/gameStore';
 import BambooAnimation from '../components/BambooAnimation';
 import SparkAnimation from '../components/SparkAnimation';
 import MiniBoard from '../components/MiniBoard';
-import ConnectionLine from '../components/ConnectionLine';
 import StorageUtils from '../utils/StorageUtils';
 import soundManager from '../utils/SoundUtils';
 
@@ -56,7 +55,6 @@ export default function Game() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(1); // 1 or 2
   const [errorMessage, setErrorMessage] = useState(null); // 错误提示信息
-  const [connectionLines, setConnectionLines] = useState([]); // 连接线动画
 
   // 使用store中的状态，不使用本地状态
   const timeRemaining = gameState.timeRemaining;
@@ -694,30 +692,8 @@ export default function Game() {
   };
 
   const handleSuccessfulMatch = (tile1, tile2) => {
-    // Calculate path and show connection line first
     const pathResult = findPath(tile1, tile2);
-    
-    // Get screen positions for connection line
-    const startPos = getTileScreenPosition(tile1.row, tile1.col);
-    const endPos = getTileScreenPosition(tile2.row, tile2.col);
-    
-    // Convert path points to screen coordinates
-    const pathPoints = pathResult.path.map(point => 
-      getTileScreenPosition(point.row, point.col)
-    );
-    
-    // Create connection line animation
-    const lineId = Date.now();
-    setConnectionLines(prev => [...prev, {
-      id: lineId,
-      startPosition: startPos,
-      endPosition: endPos,
-      pathPoints: pathPoints,
-      onComplete: () => {
-        handleConnectionLineComplete(lineId);
-        executeSuccessfulMatch(tile1, tile2, pathResult);
-      }
-    }]);
+    executeSuccessfulMatch(tile1, tile2, pathResult);
   };
 
   const executeSuccessfulMatch = (tile1, tile2, pathResult) => {
@@ -1535,15 +1511,6 @@ export default function Game() {
     }
   };
 
-  const handleConnectionLineComplete = (lineId) => {
-    setConnectionLines(prev => prev.filter(line => line.id !== lineId));
-    
-    // 查找对应的连接线并执行回调
-    const line = connectionLines.find(l => l.id === lineId);
-    if (line && line.onComplete) {
-      line.onComplete();
-    }
-  };
 
   // 根据关卡动态计算瓦片尺寸
   const getTileSizeForLevel = (level) => {
@@ -2002,18 +1969,6 @@ export default function Game() {
           startPosition={animation.startPosition}
           targetPositions={animation.targetPositions}
           onAnimationComplete={() => handleSparkAnimationComplete(animation.id)}
-        />
-      ))}
-
-      {/* 连接线动画 */}
-      {connectionLines.map((line) => (
-        <ConnectionLine
-          key={line.id}
-          startPosition={line.startPosition}
-          endPosition={line.endPosition}
-          pathPoints={line.pathPoints}
-          onAnimationComplete={line.onComplete}
-          tileSize={tileConfig.tileSize}
         />
       ))}
 
