@@ -1903,21 +1903,22 @@ export default function Game() {
   };
 
   return (
-    <SafeAreaView
-      style={styles.container}
-      onLayout={(e) => {
-        const { y, height } = e.nativeEvent.layout;
-        setUiHeights(prev => ({
-          ...prev,
-          safeTop: y,
-          safeBottom: screenHeight - height - y
-        }));
-      }}
-    >
+    <View style={styles.container}>
       <ImageBackground
         source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/gamebackground.png' }}
         style={styles.backgroundContainer}
         resizeMode="cover"
+      >
+      <SafeAreaView
+        style={styles.safeArea}
+        onLayout={(e) => {
+          const { y, height } = e.nativeEvent.layout;
+          setUiHeights(prev => ({
+            ...prev,
+            safeTop: y,
+            safeBottom: screenHeight - height - y
+          }));
+        }}
       >
         {/* Header */}
         <View style={styles.header} onLayout={handleLayoutMeasure('header')}>
@@ -2051,6 +2052,7 @@ export default function Game() {
             </View>
           </TouchableOpacity>
         </View>
+      </SafeAreaView>
       </ImageBackground>
 
       {/* 竹子飞行动画 */}
@@ -2076,7 +2078,7 @@ export default function Game() {
       ))}
 
       {renderModal()}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -2085,6 +2087,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  safeArea: {
     flex: 1,
   },
   header: {
