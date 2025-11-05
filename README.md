@@ -4,7 +4,7 @@ Connect pairs with ≤2 turns, beat the clock, manage hearts, and climb infinite
 
 ## Overview
 
-Link is a modern take on the classic "Lianliankan" puzzle game built with React Native and Expo. Players connect matching tile pairs using paths with no more than 2 turns, racing against time and managing limited hearts to progress through increasingly challenging levels.
+Link is a modern take on classic "Lianliankan" puzzle game built with React Native and Expo. Players connect matching tile pairs using paths with no more than 2 turns, racing against time and managing limited hearts to progress through increasingly challenging levels.
 
 ## Features
 
