@@ -41,7 +41,7 @@ export const GameUtils = {
 
   // Calculate hearts per level
   calculateHearts: (level) => {
-    return Math.max(3, 10 - Math.floor((level - 1) / 12));
+    return Math.max(3, 10 - Math.floor((level - 1) / 6));
   },
 
   // Get level size (increases +4 every 12 levels, max 80)
