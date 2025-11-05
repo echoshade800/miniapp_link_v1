@@ -1928,16 +1928,7 @@ export default function Game() {
             <MaterialIcons name="pause" size={24} color="#5A8F7B" />
           </TouchableOpacity>
 
-          <View style={styles.headerCenter}>
-            <Text style={styles.levelTitle}>Level {currentLevel}</Text>
-            {gravityModeInfo.arrow && (
-              <View style={styles.gravityBadge}>
-                <Text style={styles.gravityBadgeText}>
-                  Gravity: {GameUtils.getLevelLayout(currentLevel)} {gravityModeInfo.arrow === '←' ? '(Tiles slide ←)' : gravityModeInfo.arrow === '↓' ? '(Tiles fall ↓)' : gravityModeInfo.arrow === '↔' ? '(← →)' : `(${gravityModeInfo.arrow})`}
-                </Text>
-              </View>
-            )}
-          </View>
+          <Text style={styles.levelTitle}>Level {currentLevel}</Text>
 
           <TouchableOpacity
             style={styles.homeButton}
@@ -1956,6 +1947,13 @@ export default function Game() {
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${Math.min(progressPercentage, 100)}%` }]} />
             </View>
+            {gravityModeInfo.arrow && (
+              <View style={styles.gravityBadge}>
+                <Text style={styles.gravityBadgeText}>
+                  Gravity: {GameUtils.getLevelLayout(currentLevel)} {gravityModeInfo.arrow === '←' ? '(Tiles slide ←)' : gravityModeInfo.arrow === '↓' ? '(Tiles fall ↓)' : gravityModeInfo.arrow === '↔' ? '(← →)' : `(${gravityModeInfo.arrow})`}
+                </Text>
+              </View>
+            )}
           </View>
           <Text style={styles.progressText}>
             {currentLevel > maxLevel ? `+${currentLevelBamboo}` : 'Replay'}
@@ -2104,10 +2102,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 20,
   },
-  headerCenter: {
-    alignItems: 'center',
-    gap: 4,
-  },
   levelTitle: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -2118,6 +2112,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+    marginLeft: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
