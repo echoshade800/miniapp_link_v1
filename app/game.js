@@ -2093,7 +2093,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    marginTop: 100,
+    marginTop: 90,
   },
   pauseButton: {
     padding: 8,
