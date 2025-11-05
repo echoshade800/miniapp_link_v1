@@ -1567,9 +1567,9 @@ export default function Game() {
     const netHeight = availableHeight - 2 * boardPadding;
 
     // margin比例系数（相对于tileSize）
-    const marginRatio = 0.06;
-    const minMargin = 1;
-    const maxMargin = 4;
+    const marginRatio = 0.04;
+    const minMargin = 0.5;
+    const maxMargin = 2.5;
 
     // 推导tileSize：设 m = margin, t = tileSize
     // 宽度约束：cols * (t + 2m) = netWidth  =>  t = netWidth/cols - 2m
@@ -1602,7 +1602,7 @@ export default function Game() {
     tileSize = PixelRatio.roundToNearestPixel(tileSize);
 
     // 根据瓦片尺寸动态计算其他参数
-    const emojiFontSize = Math.round(tileSize * 0.68);
+    const emojiFontSize = Math.round(tileSize * 0.72);
     const borderRadius = Math.round(tileSize * 0.15);
 
     return {
