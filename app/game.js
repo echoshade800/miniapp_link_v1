@@ -2106,7 +2106,7 @@ const styles = StyleSheet.create({
   },
   board: {
     backgroundColor: 'rgba(255,255,255,0.9)',
-    padding: 8,
+    padding: 12,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -2118,11 +2118,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   tile: {
-    width: 32,
-    height: 32,
+    width: 48,
+    height: 48,
     backgroundColor: '#F5F5F5',
-    margin: 1,
-    borderRadius: 6,
+    margin: 2,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -2151,12 +2151,12 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   emptyTile: {
-    width: 32,
-    height: 32,
-    margin: 1,
+    width: 48,
+    height: 48,
+    margin: 2,
   },
   tileEmoji: {
-    fontSize: 20,
+    fontSize: 32,
   },
   toolsContainer: {
     flexDirection: 'row',
