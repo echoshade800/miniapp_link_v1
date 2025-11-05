@@ -18,7 +18,8 @@ import {
   Image,
   Switch,
   useWindowDimensions,
-  PixelRatio
+  PixelRatio,
+  Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -1602,18 +1603,19 @@ export default function Game() {
     tileSize = PixelRatio.roundToNearestPixel(tileSize);
 
     // 根据瓦片尺寸动态计算其他参数
-    // emoji字号：格子越小，比例越高，让小屏幕上也能看清表情
+    // emoji字号：Android稍微降低比例，避免被裁切
     let emojiSizeRatio;
     if (tileSize <= 30) {
-      emojiSizeRatio = 0.90; // 小格子，最大化利用空间
+      emojiSizeRatio = 0.88; // Android安全值
     } else if (tileSize <= 40) {
-      emojiSizeRatio = 0.86; // 中等格子
+      emojiSizeRatio = 0.86;
     } else {
-      emojiSizeRatio = 0.82; // 大格子
+      emojiSizeRatio = 0.84;
     }
 
-    let emojiFontSize = Math.round(tileSize * emojiSizeRatio);
-    const lineHeight = emojiFontSize + 2; // 略大于emojiFontSize，确保垂直居中
+    let emojiFontSize = PixelRatio.roundToNearestPixel(tileSize * emojiSizeRatio);
+    // 关键：用格子高度当行高，给1px buffer
+    const lineHeight = Math.max(tileSize, Math.round(emojiFontSize) + 1);
     const borderRadius = Math.round(tileSize * 0.15);
 
     return {
@@ -1667,6 +1669,7 @@ export default function Game() {
         <Text
           style={[styles.tileEmoji, dynamicEmojiStyle]}
           allowFontScaling={false}
+          numberOfLines={1}
         >
           {tile}
         </Text>
@@ -2225,6 +2228,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
+    overflow: 'visible',
   },
   selectedTile: {
     backgroundColor: '#81C784',
