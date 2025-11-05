@@ -44,7 +44,7 @@ export default function HomeScreen() {
 
         {/* Main Content */}
         <View style={styles.mainContent}>
-          <Text style={styles.title}>Link</Text>
+          <Text style={styles.title}>Linker</Text>
           <Text style={styles.subtitle}>Tap, match, and relax!</Text>
 
           {/* Play Button */}
