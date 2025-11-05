@@ -1569,7 +1569,7 @@ export default function Game() {
     // margin比例系数（相对于tileSize）
     const marginRatio = 0.06;
     const minMargin = 1;
-    const maxMargin = 4;
+    const maxMargin = 2.5;
 
     // 推导tileSize：设 m = margin, t = tileSize
     // 宽度约束：cols * (t + 2m) = netWidth  =>  t = netWidth/cols - 2m
@@ -1602,12 +1602,24 @@ export default function Game() {
     tileSize = PixelRatio.roundToNearestPixel(tileSize);
 
     // 根据瓦片尺寸动态计算其他参数
-    const emojiFontSize = Math.round(tileSize * 0.68);
+    // emoji字号：格子越小，比例越高，让小屏幕上也能看清表情
+    let emojiSizeRatio;
+    if (tileSize <= 30) {
+      emojiSizeRatio = 0.90; // 小格子，最大化利用空间
+    } else if (tileSize <= 40) {
+      emojiSizeRatio = 0.86; // 中等格子
+    } else {
+      emojiSizeRatio = 0.82; // 大格子
+    }
+
+    let emojiFontSize = Math.round(tileSize * emojiSizeRatio);
+    const lineHeight = emojiFontSize + 2; // 略大于emojiFontSize，确保垂直居中
     const borderRadius = Math.round(tileSize * 0.15);
 
     return {
       tileSize,
       emojiFontSize,
+      lineHeight,
       margin,
       boardPadding,
       borderRadius,
@@ -1633,6 +1645,7 @@ export default function Game() {
 
     const dynamicEmojiStyle = {
       fontSize: tileConfig.emojiFontSize,
+      lineHeight: tileConfig.lineHeight,
     };
 
     if (isEmpty) {
@@ -1651,7 +1664,12 @@ export default function Game() {
         ]}
         onPress={() => handleTilePress(row, col)}
       >
-        <Text style={[styles.tileEmoji, dynamicEmojiStyle]}>{tile}</Text>
+        <Text
+          style={[styles.tileEmoji, dynamicEmojiStyle]}
+          allowFontScaling={false}
+        >
+          {tile}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -2233,6 +2251,9 @@ const styles = StyleSheet.create({
   emptyTile: {
   },
   tileEmoji: {
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   toolsContainer: {
     flexDirection: 'row',
