@@ -17,6 +17,7 @@ import {
   ImageBackground,
   Image,
   Switch,
+  Dimensions,
   useWindowDimensions,
   PixelRatio,
   Dimensions
