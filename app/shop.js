@@ -121,15 +121,19 @@ export default function Shop() {
       <View style={styles.contentWrapper}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <MaterialIcons name="arrow-back" size={24} color="#666" />
-        </TouchableOpacity>
-        
+        <View style={styles.headerLeft}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <MaterialIcons name="arrow-back" size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.title}>Shop</Text>
-        
-        <View style={styles.bambooContainer}>
-          <Text style={styles.bambooEmoji}>🎋</Text>
-          <Text style={styles.bambooText}>{bambooBalance}</Text>
+
+        <View style={styles.headerRight}>
+          <View style={styles.bambooContainer}>
+            <Text style={styles.bambooEmoji}>🎋</Text>
+            <Text style={styles.bambooText}>{bambooBalance}</Text>
+          </View>
         </View>
       </View>
 
@@ -187,15 +191,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
   },
+  headerLeft: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  headerRight: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
   backButton: {
     padding: 8,
-    width: 40,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#2E7D32',
-    flex: 1,
     textAlign: 'center',
   },
   bambooContainer: {
