@@ -118,6 +118,7 @@ export default function Shop() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.contentWrapper}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -159,6 +160,7 @@ export default function Shop() {
           </Text>
         </View>
       </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -168,11 +170,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F0F8F0',
   },
+  contentWrapper: {
+    flex: 1,
+    marginTop: 50,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 50,
     paddingBottom: 20,
   },
   header: {
