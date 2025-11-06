@@ -70,7 +70,7 @@ export default function HomeScreen() {
         {/* Panda Image */}
         <View style={styles.pandaContainer}>
           <Image
-            source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/panda.png' }}
+            source={require('../assets/images/panda.png')}
             style={styles.pandaImage}
             resizeMode="contain"
           />

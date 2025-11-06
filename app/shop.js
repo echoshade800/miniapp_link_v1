@@ -28,7 +28,7 @@ export default function Shop() {
       id: 'hint',
       name: 'Hint',
       description: 'Highlight a pair of connectable tiles',
-      imageUrl: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/lighttab.png',
+      imageSource: require('../assets/images/lighttab.png'),
       price: GAME_CONSTANTS.TOOL_PRICES.hint,
       color: '#FFC107',
     },
@@ -36,7 +36,7 @@ export default function Shop() {
       id: 'bomb',
       name: 'Bomb',
       description: 'Remove a random connectable pair',
-      imageUrl: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/boomtab.png',
+      imageSource: require('../assets/images/boomtab.png'),
       price: GAME_CONSTANTS.TOOL_PRICES.bomb,
       color: '#FF5722',
     },
@@ -44,7 +44,7 @@ export default function Shop() {
       id: 'shuffle',
       name: 'Shuffle',
       description: 'Rearrange remaining tiles',
-      imageUrl: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/washtab.png',
+      imageSource: require('../assets/images/washtab.png'),
       price: GAME_CONSTANTS.TOOL_PRICES.shuffle,
       color: '#9C27B0',
     },
@@ -78,7 +78,7 @@ export default function Shop() {
     <View key={tool.id} style={styles.toolCard}>
       <View style={[styles.toolIcon, { backgroundColor: `${tool.color}20` }]}>
         <Image 
-          source={{ uri: tool.imageUrl }}
+          source={tool.imageSource}
           style={styles.toolIconImage}
         />
       </View>

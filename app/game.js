@@ -1829,7 +1829,7 @@ export default function Game() {
           <View style={styles.modalOverlay}>
             <View style={styles.completeModalContainer}>
               <ImageBackground
-                source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/win.png' }}
+                source={require('../assets/images/win.png')}
                 style={styles.completeModalBackground}
                 resizeMode="cover"
               >
@@ -1906,7 +1906,7 @@ export default function Game() {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/gamebackground.png' }}
+        source={require('../assets/images/gamebackground.png')}
         style={styles.backgroundContainer}
         resizeMode="cover"
       >
@@ -2017,7 +2017,7 @@ export default function Game() {
             disabled={inventory.bomb === 0 || timeRemaining <= 0}
           >
             <Image 
-              source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/boomtab.png' }}
+              source={require('../assets/images/boomtab.png')}
               style={styles.toolIconImage}
             />
             <View style={styles.toolBadge}>
@@ -2031,7 +2031,7 @@ export default function Game() {
             disabled={inventory.hint === 0 || timeRemaining <= 0}
           >
             <Image 
-              source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/lighttab.png' }}
+              source={require('../assets/images/lighttab.png')}
               style={styles.toolIconImage}
             />
             <View style={styles.toolBadge}>
@@ -2045,7 +2045,7 @@ export default function Game() {
             disabled={inventory.shuffle === 0 || timeRemaining <= 0}
           >
             <Image 
-              source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/washtab.png' }}
+              source={require('../assets/images/washtab.png')}
               style={styles.toolIconImage}
             />
             <View style={styles.toolBadge}>
