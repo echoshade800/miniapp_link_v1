@@ -19,8 +19,7 @@ import {
   Switch,
   Dimensions,
   useWindowDimensions,
-  PixelRatio,
-  Dimensions
+  PixelRatio
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';

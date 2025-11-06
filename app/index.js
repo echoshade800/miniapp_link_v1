@@ -32,7 +32,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={{ uri: 'https://dzdbhsix5ppsc.cloudfront.net/monster/linker/background.png' }}
+        source={require('../assets/images/background.png')}
         style={styles.backgroundContainer}
         resizeMode="cover"
       >
