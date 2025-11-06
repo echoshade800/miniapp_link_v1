@@ -252,6 +252,7 @@ export default function Settings() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.contentWrapper}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -295,6 +296,7 @@ export default function Settings() {
 
       {/* Tab Content */}
       {renderTabContent()}
+      </View>
     </SafeAreaView>
   );
 }
@@ -303,6 +305,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F0F8F0',
+  },
+  contentWrapper: {
+    flex: 1,
+    marginTop: 50,
   },
   header: {
     flexDirection: 'row',
