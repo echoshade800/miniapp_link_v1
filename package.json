@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "EXPO_NO_TELEMETRY=1 expo start",
     "expo": "expo",
+    "build:ios": "npx react-native bundle --platform ios --dev false --entry-file index.tsx --bundle-output rnbundle/main.jsbundle --assets-dest rnbundle",
     "build:web": "expo export --platform web",
     "lint": "expo lint",
     "deploy:ios": "sh deploy_ios.sh"
